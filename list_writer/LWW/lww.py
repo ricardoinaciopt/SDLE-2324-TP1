@@ -1,11 +1,12 @@
 import time
-from threading import RLock
+import uuid
 
 
-class Lww:
+class ShoppingList:
     def __init__(self):
         self.add_set = {}
         self.remove_set = {}
+        self.list_id = uuid.uuid4()
 
     def add(self, element):
         try:
@@ -41,7 +42,7 @@ class Lww:
         return add_subset and remove_subset
 
     def merge(self, other):
-        merged_list = Lww()
+        merged_list = ShoppingList()
 
         merged_list.add_set = {**self.add_set, **other.add_set}
 
@@ -59,9 +60,9 @@ class Lww:
 
     def get_full_list(self):
         list_elements = list(self.add_set.keys() | self.remove_set.keys())
-        full_list = {}
+        full_list = []
         for e in list_elements:
             if self.lookup(e):
-                full_list[e] = self.add_set[e]
+                full_list.append(e)
 
         return full_list

@@ -1,5 +1,8 @@
-from LWW.lww import Lww
+from LWW.lww import ShoppingList
 import time
+import hashlib
+import json
+import pickle
 
 
 def test_add():
@@ -68,12 +71,11 @@ def test_compare():
 
 def test_merge():
     # different versions of same list
-    lww1 = Lww()
-    lww2 = Lww()
+    lww1 = ShoppingList()
+    lww2 = ShoppingList()
 
     lww1.add(1)
     lww1.add(2)
-
     lww1.remove(1)
 
     time.sleep(3)
@@ -82,7 +84,16 @@ def test_merge():
 
     lww = lww1.merge(lww2)
 
-    print(lww.get_full_list())
+    print(lww1.list_id)
+    print(f"\n{lww.get_full_list()}")
+
+    list_to_send = pickle.dumps(lww)
+    print("\n\nList as bytes:", list_to_send)
+
+    received_list = pickle.loads(list_to_send)
+    print("\n\nDeserialized list:", received_list.__dict__)
+
+    print(received_list.add_set)
 
 
 if __name__ == "__main__":

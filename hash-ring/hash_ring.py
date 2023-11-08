@@ -37,10 +37,9 @@ class HashRing:
         return self.ring[ring_keys[0]]
 
 
-# Example usage
 if __name__ == "__main__":
     # Initial nodes
-    nodes = ["node1", "node2", "node3", "node4", "node5", "node6"]
+    nodes = ["node1", "node2", "node3", "node4", "node5"]
 
     # Create a hash ring with initial nodes
     ring = HashRing(nodes)
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     print(f"The node for key '{key}' before removal is: {node_before_removal}")
 
     # Remove a node from the hash ring
-    removed_node = "node5"
+    removed_node = "node4"
     ring.remove_node(removed_node)
     print(f"Node '{removed_node}' has been removed from the hash ring.")
 

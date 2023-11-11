@@ -1,65 +1,91 @@
 import zmq
 import uuid
+import time
 
 
 class Proxy:
-    def __init__(self):
+    def __init__(
+        self, frontend_port_s, frontend_port_r, backend_port_s, backend_port_r
+    ):
         self.context = zmq.Context()
-        self.client_socket = self.context.socket(zmq.DEALER)
-        self.client_socket.bind("tcp://*:5555")
-        self.server_socket = self.context.socket(zmq.DEALER)
-        self.server_socket.bind("tcp://*:5556")
-        self.connected_clients = set()
-        self.connected_servers = set()
 
-    def start_proxy(self):
-        poller = zmq.Poller()
-        poller.register(self.client_socket, zmq.POLLIN)
-        poller.register(self.server_socket, zmq.POLLIN)
+        # Frontend sockets (clients connect here)
+        self.frontend_s = self.context.socket(zmq.DEALER)
+        self.frontend_r = self.context.socket(zmq.ROUTER)
+        self.frontend_s.bind(f"tcp://*:{frontend_port_s}")
+        self.frontend_r.bind(f"tcp://*:{frontend_port_r}")
 
-        while True:
-            sockets = dict(poller.poll())
+        # Backend sockets (servers connect here)
+        self.servers = []
+        self.backend_s = self.context.socket(zmq.DEALER)
+        self.backend_r = self.context.socket(zmq.ROUTER)
+        self.backend_s.bind(f"tcp://*:{backend_port_s}")
+        self.backend_r.bind(f"tcp://*:{backend_port_r}")
 
-            if (
-                self.client_socket in sockets
-                and sockets[self.client_socket] == zmq.POLLIN
-            ):
-                frames = self.client_socket.recv_multipart()
+    def add_server(self, server_id):
+        if server_id not in self.servers:
+            self.servers.append(server_id)
 
-                client_id = frames[0].decode()
-                message = frames[1].decode()
+    def handle_hello_request(self):
+        hello_message = self.backend_r.recv_multipart()
+        if hello_message and hello_message[1] == b"S_HELLO":
+            server_id = hello_message[2].decode()
+            node_type = hello_message[3].decode()
 
-                print(f"C: {message}")
+            if node_type == "SERVER" and server_id not in self.servers:
+                print(f"Added Server: {server_id}")
+                self.add_server(server_id)
 
-                if client_id not in self.connected_clients:
-                    self.connected_clients.add(client_id)
-                    print(f"New client connected: {client_id}")
-                    print("Connected Clients:", list(self.connected_clients))
+            self.backend_s.send_multipart([server_id.encode(), b"ACK"])
 
-                self.send_to_server(client_id, message)
+    def run(self):
+        try:
+            poller = zmq.Poller()
+            poller.register(self.frontend_r, zmq.POLLIN)
+            poller.register(self.backend_r, zmq.POLLIN)
 
-            if (
-                self.server_socket in sockets
-                and sockets[self.server_socket] == zmq.POLLIN
-            ):
-                frames = self.server_socket.recv_multipart()
+            while True:
+                sockets = dict(poller.poll())
 
-                server_id = frames[0].decode()
-                message = frames[1].decode()
-                print("S::", message)
-                if server_id not in self.connected_servers:
-                    self.connected_servers.add(server_id)
-                    print(f"New server connected: {server_id}")
-                    print("Connected Servers:", list(self.connected_servers))
+                if self.frontend_r in sockets:
+                    message = self.frontend_r.recv_multipart()
+                    client_id = message[1].decode()
+                    msg_data = message[2].decode()
+                    print("CLIENT:", msg_data)
+                    if self.servers:
+                        server_uuid = self.servers[0]
+                        print("Sending to ", server_uuid)
+                        self.backend_s.send_multipart(
+                            [server_uuid.encode(), msg_data.encode()]
+                        )
+                    else:
+                        print("No servers available to handle the request.")
 
-                self.client_socket.send_multipart(
-                    [server_id.encode(), message.encode()]
-                )
+                if self.backend_r in sockets:
+                    # register the server
+                    self.handle_hello_request()
+                    message = self.backend_r.recv_multipart()
+                    print("SERVER: ", message[1].decode())
 
-    def send_to_server(self, c_id, msg):
-        self.server_socket.send_multipart([c_id.encode(), msg.encode()])
+                    # Route the message back to the client
+                    client_uuid = message[0]
+                    self.frontend_s.send_multipart([client_uuid, message[1]])
+
+        except zmq.error.ContextTerminated:
+            pass
+        finally:
+            self.frontend_r.close()
+            self.frontend_s.close()
+            self.backend_r.close()
+            self.backend_s.close()
+            self.context.term()
 
 
 if __name__ == "__main__":
-    proxy = Proxy()
-    proxy.start_proxy()
+    proxy = Proxy(
+        frontend_port_s=5555,
+        frontend_port_r=5556,
+        backend_port_s=5565,
+        backend_port_r=5566,
+    )
+    proxy.run()

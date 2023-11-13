@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "list": [
+    {
+      "id": "1",
+      "acquired": "false",
+      "quantity": 1
+    },
+    {
+      "id": "2",
+      "acquired": "false",
+      "quantity": 1
+    }
+  ]
+}

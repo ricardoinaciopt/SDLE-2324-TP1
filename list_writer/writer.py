@@ -56,6 +56,15 @@ def append_to_file(list_URL, new_data):
     return list_name
 
 
+def verify_file(file_path):
+    print(file_path)
+    directory = "./lists/"
+    base_name = os.path.basename(file_path)
+    new_file_path = os.path.join(directory, f"{base_name}.json")
+    print(new_file_path)
+    return os.path.exists(new_file_path)
+    
+
 def main():
     list_name = ""
     os.system("cls")
@@ -69,10 +78,13 @@ def main():
         list_name = write_to_file(data)
         print(f"\nCreated list with URL: {list_name[:-5]}\nPress ENTER to continue...")
     else:
-        old_list = input("\nInsert list URL:")
-        data = create_list_item()
-        list_name = append_to_file(old_list, data)
-        print(f"\nUpdated list with URL: {list_name[:-5]}\nPress ENTER to continue...")
+            old_list = input("\nInsert list URL:")
+            if verify_file(old_list):
+                data = create_list_item()
+                list_name = append_to_file(old_list, data)
+                print(f"\nUpdated list with URL: {list_name[:-5]}\nPress ENTER to continue...")
+            else:
+                print(f"oh no")
 
     input()
     main()

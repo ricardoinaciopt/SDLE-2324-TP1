@@ -9,13 +9,11 @@ class Proxy:
     ):
         self.context = zmq.Context()
 
-        # Frontend sockets (clients connect here)
         self.frontend_s = self.context.socket(zmq.DEALER)
         self.frontend_r = self.context.socket(zmq.ROUTER)
         self.frontend_s.bind(f"tcp://*:{frontend_port_s}")
         self.frontend_r.bind(f"tcp://*:{frontend_port_r}")
 
-        # Backend sockets (servers connect here)
         self.servers = []
         self.backend_s = self.context.socket(zmq.DEALER)
         self.backend_r = self.context.socket(zmq.ROUTER)
@@ -36,7 +34,8 @@ class Proxy:
                 print(f"Added Server: {server_id}")
                 self.add_server(server_id)
 
-            self.backend_s.send_multipart([server_id.encode(), b"ACK"])
+                self.backend_r.send_multipart([server_id.encode(), b"ACK"])
+                self.backend_s.send_multipart([server_id.encode(), b"ACK"])
 
     def run(self):
         try:
@@ -45,31 +44,36 @@ class Proxy:
             poller.register(self.backend_r, zmq.POLLIN)
 
             while True:
-                sockets = dict(poller.poll())
-
-                if self.frontend_r in sockets:
-                    message = self.frontend_r.recv_multipart()
-                    client_id = message[1].decode()
-                    msg_data = message[2].decode()
-                    print("CLIENT:", msg_data)
-                    if self.servers:
-                        server_uuid = self.servers[0]
-                        print("Sending to ", server_uuid)
-                        self.backend_s.send_multipart(
-                            [server_uuid.encode(), msg_data.encode()]
-                        )
-                    else:
-                        print("No servers available to handle the request.")
+                sockets = dict(poller.poll(1000))
 
                 if self.backend_r in sockets:
-                    # register the server
                     self.handle_hello_request()
-                    message = self.backend_r.recv_multipart()
-                    print("SERVER: ", message[1].decode())
 
-                    # Route the message back to the client
-                    client_uuid = message[0]
-                    self.frontend_s.send_multipart([client_uuid, message[1]])
+                    while self.backend_r.poll(0):
+                        message = self.backend_r.recv_multipart()
+                        print("SERVER: ", message[1].decode())
+                        server_msg = message[1].decode()
+
+                        if server_msg != "S_HELLO":
+                            client_uuid = message[0]
+                            self.frontend_s.send_multipart(
+                                [client_uuid, server_msg.encode()]
+                            )
+
+                if self.frontend_r in sockets:
+                    while self.frontend_r.poll(0):
+                        message = self.frontend_r.recv_multipart()
+                        client_id = message[1].decode()
+                        msg_data = message[2].decode()
+                        print("CLIENT:", msg_data)
+                        if self.servers:
+                            server_uuid = self.servers[0]
+                            print("Sending to ", server_uuid)
+                            self.backend_s.send_multipart(
+                                [server_uuid.encode(), msg_data.encode()]
+                            )
+                        else:
+                            print("No servers available to handle the request.")
 
         except zmq.error.ContextTerminated:
             pass

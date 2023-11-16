@@ -21,9 +21,9 @@ class Client:
 
     def send_data(self, message):
         self.socket_s.send_multipart([self.uuid.encode(), message.encode()])
-        print("SENT")
+        print("SENT: ", message)
         response = self.socket_r.recv_multipart()
-        print(f"Client received response: {response[1].decode()}")
+        print(f":>  {response[1].decode()}")
 
     def close(self):
         self.socket_r.close()

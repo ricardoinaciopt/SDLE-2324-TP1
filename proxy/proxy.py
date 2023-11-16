@@ -20,48 +20,49 @@ class Proxy:
         self.backend_s.bind(f"tcp://*:{backend_port_s}")
         self.backend_r.bind(f"tcp://*:{backend_port_r}")
 
+        self.poller = zmq.Poller()
+
     def add_server(self, server_id):
         if server_id not in self.servers:
             self.servers.append(server_id)
 
     def handle_hello_request(self):
-        hello_message = self.backend_r.recv_multipart()
-        if hello_message and hello_message[1] == b"S_HELLO":
-            server_id = hello_message[2].decode()
-            node_type = hello_message[3].decode()
+        message = self.backend_r.recv_multipart()
+        if message and message[1] == b"S_HELLO":
+            server_id = message[2].decode()
+            node_type = message[3].decode()
 
             if node_type == "SERVER" and server_id not in self.servers:
                 print(f"Added Server: {server_id}")
                 self.add_server(server_id)
 
-                self.backend_r.send_multipart([server_id.encode(), b"ACK"])
                 self.backend_s.send_multipart([server_id.encode(), b"ACK"])
+                return True
+        else:
+            return message
 
     def run(self):
         try:
-            poller = zmq.Poller()
-            poller.register(self.frontend_r, zmq.POLLIN)
-            poller.register(self.backend_r, zmq.POLLIN)
+            self.poller.register(self.frontend_r, zmq.POLLIN)
+            self.poller.register(self.backend_r, zmq.POLLIN)
 
             while True:
-                sockets = dict(poller.poll(1000))
+                sockets = dict(self.poller.poll())
 
-                if self.backend_r in sockets:
-                    self.handle_hello_request()
+                while self.backend_r in sockets and self.backend_r.poll(0):
+                    message = self.handle_hello_request()
+                    if message == True:
+                        break
 
-                    while self.backend_r.poll(0):
-                        message = self.backend_r.recv_multipart()
-                        print("SERVER: ", message[1].decode())
-                        server_msg = message[1].decode()
+                    server_msg = message[1].decode()
+                    client_uuid = message[0]
 
-                        if server_msg != "S_HELLO":
-                            client_uuid = message[0]
-                            self.frontend_s.send_multipart(
-                                [client_uuid, server_msg.encode()]
-                            )
+                    print("SERVER: ", message[1].decode())
+                    print("Sending to ", message[1].decode())
+                    self.frontend_s.send_multipart([client_uuid, server_msg.encode()])
 
                 if self.frontend_r in sockets:
-                    while self.frontend_r.poll(0):
+                    if self.frontend_r.poll(0):
                         message = self.frontend_r.recv_multipart()
                         client_id = message[1].decode()
                         msg_data = message[2].decode()

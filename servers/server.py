@@ -43,7 +43,7 @@ class Server:
 
             client_message = response[1].decode()
 
-            print(f">: {client_message}")
+            print(f":> {client_message}")
             msg_to_send = client_message.upper()
             self.socket_s.send(msg_to_send.encode())
             print(f"SENT: {msg_to_send}")

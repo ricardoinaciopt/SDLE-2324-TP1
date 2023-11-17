@@ -1,6 +1,7 @@
 import zmq
 import uuid
 import time
+import random
 
 
 class Client:
@@ -43,7 +44,8 @@ if __name__ == "__main__":
         client.connect()
 
         while True:
-            client.send_data("Hello from Client")
+            msg = "list_" + str(random.randint(0, 99))
+            client.send_data(msg)
 
             time.sleep(1)
 

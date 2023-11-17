@@ -58,7 +58,7 @@ class Proxy:
                     client_uuid = message[0]
 
                     print("SERVER: ", message[1].decode())
-                    print("Sending to ", message[1].decode())
+
                     self.frontend_s.send_multipart([client_uuid, server_msg.encode()])
 
                 if self.frontend_r in sockets:

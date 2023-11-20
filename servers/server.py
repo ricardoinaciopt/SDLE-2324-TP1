@@ -4,32 +4,47 @@ import time
 
 
 class Server:
-    def __init__(self, node_type, proxy_address_s, proxy_address_r):
+    def __init__(
+        self,
+        node_type,
+        proxy_address_s,
+        proxy_address_r,
+        proxy_address_ack,
+        proxy_address_hello,
+    ):
         self.context = zmq.Context()
         self.socket_s = self.context.socket(zmq.DEALER)
         self.socket_r = self.context.socket(zmq.DEALER)
+        self.socket_ack = self.context.socket(zmq.DEALER)
+        self.socket_hello = self.context.socket(zmq.DEALER)
         self.uuid = str(uuid.uuid4())
         self.node_type = node_type
         self.isAssigned = False
         self.proxy_address_s = proxy_address_s
         self.proxy_address_r = proxy_address_r
+        self.proxy_address_ack = proxy_address_ack
+        self.proxy_address_hello = proxy_address_hello
 
         print("SERVER STARTED:", self.uuid, "\n--------\n")
 
     def connect(self):
         self.socket_r.connect(self.proxy_address_r)
+        self.socket_ack.connect(self.proxy_address_ack)
+        self.socket_hello.connect(self.proxy_address_hello)
         self.socket_s.connect(self.proxy_address_s)
         self.send_hello_request()
 
     def send_hello_request(self):
-        self.socket_s.send_multipart(
+        self.socket_hello.send_multipart(
             [b"S_HELLO", self.uuid.encode(), self.node_type.encode()]
         )
+        print("SENT S_HELLO")
 
-        response = self.socket_r.recv_multipart()
-        ack = response[1].decode()
-        print(f"RECEIVED {ack}")
-        self.socket_r.send(b"CONNECTED")
+        ack = ""
+        while ack != "ACK":
+            response = self.socket_ack.recv_multipart()
+            ack = response[1].decode()
+            print(f"RECEIVED {ack}")
 
         self.isAssigned = True
 
@@ -40,13 +55,17 @@ class Server:
                 self.send_hello_request()
 
             response = self.socket_r.recv_multipart()
+            if response[1].decode() != "ACK":
+                client_message = response[1].decode()
 
-            client_message = response[1].decode()
-
-            print(f":> {client_message}")
-            msg_to_send = client_message.upper()
-            self.socket_s.send(msg_to_send.encode())
-            print(f"SENT: {msg_to_send}")
+                print(f":> {client_message}")
+                msg_to_send = client_message.upper()
+                self.socket_s.send_multipart(
+                    [client_message.encode(), msg_to_send.encode()]
+                )
+                print(f"SENT: {msg_to_send}")
+            else:
+                self.socket_s.send_multipart([b"", b""])
 
     def close(self):
         self.socket_r.close()
@@ -59,6 +78,8 @@ if __name__ == "__main__":
         node_type="SERVER",
         proxy_address_r="tcp://localhost:5565",
         proxy_address_s="tcp://localhost:5566",
+        proxy_address_ack="tcp://localhost:5575",
+        proxy_address_hello="tcp://localhost:5576",
     )
 
     try:

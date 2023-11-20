@@ -8,7 +8,7 @@ class Client:
     def __init__(self, node_type, proxy_address_s, proxy_address_r):
         self.context = zmq.Context()
         self.socket_s = self.context.socket(zmq.XREQ)
-        self.socket_r = self.context.socket(zmq.XREQ)
+        self.socket_r = self.context.socket(zmq.SUB)
         self.uuid = str(uuid.uuid4())
         self.node_type = node_type
         self.proxy_address_s = proxy_address_s
@@ -22,6 +22,8 @@ class Client:
 
     def send_data(self, message):
         self.socket_s.send_multipart([self.uuid.encode(), message.encode()])
+        self.socket_r.setsockopt_string(zmq.SUBSCRIBE, message)
+        print("\n[SENDING LIST]")
         print("SENT: ", message)
         response = self.socket_r.recv_multipart()
         print(f":>  {response[1].decode()}")

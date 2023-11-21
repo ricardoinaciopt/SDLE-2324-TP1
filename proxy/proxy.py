@@ -23,7 +23,7 @@ class Proxy:
         self.servers = []
         self.backend_s = self.context.socket(zmq.DEALER)
         self.backend_r = self.context.socket(zmq.ROUTER)
-        self.backend_ack = self.context.socket(zmq.DEALER)
+        self.backend_ack = self.context.socket(zmq.PUB)
         self.backend_hello = self.context.socket(zmq.ROUTER)
         self.backend_s.bind(f"tcp://*:{backend_port_s}")
         self.backend_r.bind(f"tcp://*:{backend_port_r}")
@@ -52,20 +52,23 @@ class Proxy:
                         node_type = message[3].decode()
 
                         if node_type == "SERVER" and server_id not in self.servers:
-                            print(f"Added Server: {server_id}")
+                            print(f"P> Added Server: {server_id}")
                             self.add_server(server_id)
 
                             self.backend_ack.send_multipart(
                                 [server_id.encode(), b"ACK"]
                             )
 
+                            print("P> SENT ACK")
+
                 if self.backend_r in sockets and self.backend_r.poll(0):
                     message = self.backend_r.recv_multipart()
 
-                    server_msg = message[2].decode()
                     sub_msg = message[1]
+                    server_msg = message[2].decode()
+                    s_id = message[3].decode()
 
-                    print("SERVER: ", server_msg)
+                    print(f"P> S({s_id}): {server_msg}")
 
                     self.frontend_s.send_multipart([sub_msg, server_msg.encode()])
 
@@ -73,10 +76,11 @@ class Proxy:
                     message = self.frontend_r.recv_multipart()
                     client_id = message[1].decode()
                     msg_data = message[2].decode()
-                    print("CLIENT:", msg_data)
+                    print("P> C:", msg_data)
                     if self.servers:
+                        # TODO: Select the correct server based on the hash ring. Now its only picking the first in list, but not working, since its distributing load among all servers (probably use a PUB-SUB do reach a specific server)
                         server_uuid = self.servers[0]
-                        print("Sending to ", server_uuid)
+                        print("P> Sending to ", server_uuid)
                         self.backend_s.send_multipart(
                             [server_uuid.encode(), msg_data.encode()]
                         )
@@ -101,7 +105,7 @@ if __name__ == "__main__":
         frontend_port_r=5556,
         backend_port_s=5565,
         backend_port_r=5566,
-        backend_port_hello=5576,
         backend_port_ack=5575,
+        backend_port_hello=5576,
     )
     proxy.run()

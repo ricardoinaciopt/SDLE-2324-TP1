@@ -14,7 +14,7 @@ class Client:
         self.proxy_address_s = proxy_address_s
         self.proxy_address_r = proxy_address_r
 
-        print("CLIENT STARTED: ", self.uuid, "\n--------\n")
+        print("\n--------\nC> STARTED: ", self.uuid)
 
     def connect(self):
         self.socket_r.connect(self.proxy_address_r)
@@ -23,10 +23,9 @@ class Client:
     def send_data(self, message):
         self.socket_s.send_multipart([self.uuid.encode(), message.encode()])
         self.socket_r.setsockopt_string(zmq.SUBSCRIBE, message)
-        print("\n[SENDING LIST]")
-        print("SENT: ", message)
+        print("C> SENT: ", message)
         response = self.socket_r.recv_multipart()
-        print(f":>  {response[1].decode()}")
+        print(f"C> S: {response[1].decode()}")
 
     def close(self):
         self.socket_r.close()

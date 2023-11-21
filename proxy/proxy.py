@@ -21,7 +21,7 @@ class Proxy:
         self.frontend_r.bind(f"tcp://*:{frontend_port_r}")
 
         self.servers = []
-        self.backend_s = self.context.socket(zmq.DEALER)
+        self.backend_s = self.context.socket(zmq.PUB)
         self.backend_r = self.context.socket(zmq.ROUTER)
         self.backend_ack = self.context.socket(zmq.PUB)
         self.backend_hello = self.context.socket(zmq.ROUTER)
@@ -78,7 +78,6 @@ class Proxy:
                     msg_data = message[2].decode()
                     print("P> C:", msg_data)
                     if self.servers:
-                        # TODO: Select the correct server based on the hash ring. Now its only picking the first in list, but not working, since its distributing load among all servers (probably use a PUB-SUB do reach a specific server)
                         server_uuid = self.servers[0]
                         print("P> Sending to ", server_uuid)
                         self.backend_s.send_multipart(

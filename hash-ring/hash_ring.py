@@ -45,16 +45,17 @@ if __name__ == "__main__":
     ring = HashRing(nodes)
 
     # Key to be mapped to a node
-    key = "list_234234234"
+    key = "list_234234"
 
     # Get the node for the key before removal
+    # WE DONT NEED TO HASH THE KEY BEFORE LOOKUP
     node_before_removal = ring.lookup_node(key)
-    print(f"The node for key '{key}' before removal is: {node_before_removal}")
+    print(f"The node for key '{key}' is: {node_before_removal}")
 
     # Remove a node from the hash ring
-    removed_node = "node4"
-    ring.remove_node(removed_node)
-    print(f"Node '{removed_node}' has been removed from the hash ring.")
+    add_node = "node6"
+    ring.add_node(add_node)
+    print(f"Node '{add_node}' has been added from the hash ring.")
 
     # Get the node for the key after removal
     node_after_removal = ring.lookup_node(key)

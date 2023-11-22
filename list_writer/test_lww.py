@@ -1,5 +1,6 @@
 from LWW.lww import ShoppingList
 import time
+import sys
 import hashlib
 import json
 import pickle
@@ -12,7 +13,7 @@ def test_add():
     :return: None
     """
 
-    lww = Lww()
+    lww = ShoppingList()
 
     lww.add(1)
     lww.add("test_element")
@@ -29,40 +30,34 @@ def test_remove():
     :return: None
     """
 
-    lww = Lww()
+    lww = ShoppingList()
 
     lww.remove(1)
-    lww.lookup(1)
-
     lww.add(1)
-    lww.lookup(1)
+
+    print(lww.lookup(1))
 
 
 def test_compare():
     """
-    This function test the compare method of Lww
+    This function test the compare method of ShoppingList
     :return: None
     """
 
-    lww1 = Lww()
-    lww2 = Lww()
+    lww1 = ShoppingList()
+    lww2 = ShoppingList()
 
-    lww1.add(1)
     lww1.add(2)
 
-    lww2.add(1)
-    lww2.add(2)
     lww2.add(3)
 
-    lww1.remove(1)
     lww1.remove(2)
 
     lww2.remove(1)
     lww2.remove(2)
-    lww2.remove(3)
 
-    print(lww1.add_set, lww1.remove_set)
-    print(lww2.add_set, lww2.remove_set)
+    print(lww1.get_full_list())
+    print(lww2.get_full_list())
 
     print(lww1.compare(lww2))
 
@@ -78,22 +73,21 @@ def test_merge():
     lww1.add(2)
     lww1.remove(1)
 
-    time.sleep(3)
     lww2.add(1)
     lww2.add(3)
 
     lww = lww1.merge(lww2)
 
-    print(lww1.list_id)
+    print(lww1.uuid)
     print(f"\n{lww.get_full_list()}")
 
     list_to_send = pickle.dumps(lww)
-    print("\n\nList as bytes:", list_to_send)
+    print("\n\nList as bytes:", sys.getsizeof(list_to_send))
 
     received_list = pickle.loads(list_to_send)
     print("\n\nDeserialized list:", received_list.__dict__)
 
-    print(received_list.add_set)
+    print(received_list.get_full_list())
 
 
 if __name__ == "__main__":

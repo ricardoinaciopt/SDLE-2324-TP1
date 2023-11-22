@@ -20,7 +20,10 @@ class Proxy:
         self.frontend_s.bind(f"tcp://*:{frontend_port_s}")
         self.frontend_r.bind(f"tcp://*:{frontend_port_r}")
 
+        # TODO: call the hash ring instance and add all nodes
         self.servers = []
+        self.serverQueue = []
+
         self.backend_s = self.context.socket(zmq.PUB)
         self.backend_r = self.context.socket(zmq.ROUTER)
         self.backend_ack = self.context.socket(zmq.PUB)
@@ -33,6 +36,9 @@ class Proxy:
         self.poller = zmq.Poller()
 
     def add_server(self, server_id):
+        # TODO: only add to ring, when server queue = 5, and then empty server queue and re calculate ring.
+        # if self.serverQueue.lenght == 5:
+        #     hashring.addallnodes...
         if server_id not in self.servers:
             self.servers.append(server_id)
 
@@ -78,13 +84,14 @@ class Proxy:
                     msg_data = message[2].decode()
                     print("P> C:", msg_data)
                     if self.servers:
+                        # TODO: Instead of selecting node at position 0, call a hashring function to select the responsible node
                         server_uuid = self.servers[0]
                         print("P> Sending to ", server_uuid)
                         self.backend_s.send_multipart(
                             [server_uuid.encode(), msg_data.encode()]
                         )
                     else:
-                        print("No servers available to handle the request.")
+                        print("NO SERVERS AVAILABLE")
 
         except zmq.error.ContextTerminated:
             pass

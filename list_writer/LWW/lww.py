@@ -6,7 +6,7 @@ class ShoppingList:
     def __init__(self):
         self.add_set = {}
         self.remove_set = {}
-        self.list_id = uuid.uuid4()
+        self.uuid = uuid.uuid4()
 
     def add(self, element):
         try:

@@ -62,10 +62,10 @@ class Server:
                 self.send_hello_request()
 
             response = self.socket_r.recv_multipart()
-            print("RR", response)
             client_message = response[1].decode()
             if client_message != "ACK":
                 print(f"S> C: {client_message}")
+                # TODO: Instead of converting to lowercase, check if it has list, if not save on fodler with name = self.uuid, and then merge the list
                 msg_to_send = client_message.upper()
                 self.socket_s.send_multipart(
                     [client_message.encode(), msg_to_send.encode(), self.uuid.encode()]

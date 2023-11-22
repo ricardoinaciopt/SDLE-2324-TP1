@@ -46,6 +46,7 @@ if __name__ == "__main__":
 
         while True:
             msg = "list_" + str(random.randint(0, 99))
+            # TODO: implement menu to create and add and remove elements
             client.send_data(msg)
 
             time.sleep(1)

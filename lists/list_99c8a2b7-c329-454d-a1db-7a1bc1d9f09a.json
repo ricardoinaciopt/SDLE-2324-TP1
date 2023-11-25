@@ -1,15 +1,20 @@
 {
-  "version": 1,
-  "list": [
-    {
-      "id": "queijo",
-      "acquired": "false",
-      "quantity": 3
-    },
-    {
-      "id": "pao",
-      "acquired": "false",
-      "quantity": 12
-    }
-  ]
+    "version": "1.0",
+    "list": [
+        {
+            "id": "queijo",
+            "acquired": "false",
+            "quantity": 3
+        },
+        {
+            "id": "pao",
+            "acquired": "false",
+            "quantity": 12
+        },
+        {
+            "id": "carne",
+            "acquired": "true",
+            "quantity": "0"
+        }
+    ]
 }

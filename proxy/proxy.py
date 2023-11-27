@@ -1,7 +1,7 @@
 import zmq
 import uuid
 import time
-
+from hash_ring import HashRing
 
 class Proxy:
     def __init__(
@@ -34,14 +34,20 @@ class Proxy:
         self.backend_ack.bind(f"tcp://*:{backend_port_ack}")
 
         self.poller = zmq.Poller()
+        self.hash_ring = HashRing()
 
     def add_server(self, server_id):
         # TODO: only add to ring, when server queue = 5, and then empty server queue and re calculate ring.
         # if self.serverQueue.lenght == 5:
         #     hashring.addallnodes...
         if server_id not in self.servers:
-            self.servers.append(server_id)
+            ##self.servers.append(server_id)
+            print("here")
+            self.hash_ring.add_node(server_id)
 
+    def select_responsible_node(self, key):
+        return self.hash_ring.lookup_node(key)
+    
     def run(self):
         try:
             self.poller.register(self.frontend_r, zmq.POLLIN)
@@ -83,9 +89,10 @@ class Proxy:
                     client_id = message[1].decode()
                     msg_data = message[2].decode()
                     print("P> C:", msg_data)
-                    if self.servers:
+                    
+                    if self.hash_ring.lookup_node("some_key"):
                         # TODO: Instead of selecting node at position 0, call a hashring function to select the responsible node
-                        server_uuid = self.servers[0]
+                        server_uuid = self.select_responsible_node(client_id)
                         print("P> Sending to ", server_uuid)
                         self.backend_s.send_multipart(
                             [server_uuid.encode(), msg_data.encode()]
@@ -115,3 +122,12 @@ if __name__ == "__main__":
         backend_port_hello=5576,
     )
     proxy.run()
+
+    # new_server_id = "some_new_server"
+    # proxy.add_server(new_server_id)
+
+
+
+#TO RUN SERVER -> PROXY -> CLIENT
+
+#SERVER -> PROXY -> CLIENT -> 2ND CLIENT -> 2ND SERVER WORKS!

@@ -48,6 +48,7 @@ class HashRing:
 
     def get_responsible_nodes(self):
         responsible_nodes = {}
+        self.sorted_keys.sort()
         for i in range(len(self.sorted_keys)):
             start_key = self.sorted_keys[i]
             end_key = self.sorted_keys[(i + 1) % len(self.sorted_keys)]
@@ -59,6 +60,7 @@ class HashRing:
 
     def print_key_ranges(self, index=False):
         responsible_nodes = self.get_responsible_nodes()
+        print("RESP:", len(responsible_nodes))
         for node, key_ranges in responsible_nodes.items():
             formatted_ranges = []
             for start_key, end_key in key_ranges:

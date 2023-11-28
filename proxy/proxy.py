@@ -39,10 +39,11 @@ class Proxy:
     def add_server(self, server_id):
         if server_id not in self.servers:
             self.servers.append(server_id)
-            print(f"P> SERVER QUEUE LENGHT: {len(self.serverQueue)+1}")
-            if len(self.serverQueue) < 4:
-                self.serverQueue.append(server_id)
-            else:
+            self.serverQueue.append(server_id)
+
+            print(f"P> SERVER QUEUE LENGHT: {len(self.serverQueue)}")
+
+            if len(self.serverQueue) == 5:
                 self.hash_ring.generate_ring(self.serverQueue)
                 self.hash_ring.print_key_ranges(index=True)
                 self.serverQueue.clear()

@@ -1,7 +1,8 @@
 import zmq
 import uuid
 import time
-from hash_ring import HashRing
+from hash_ring.hash_ring import HashRing
+
 
 class Proxy:
     def __init__(
@@ -20,7 +21,6 @@ class Proxy:
         self.frontend_s.bind(f"tcp://*:{frontend_port_s}")
         self.frontend_r.bind(f"tcp://*:{frontend_port_r}")
 
-        # TODO: call the hash ring instance and add all nodes
         self.servers = []
         self.serverQueue = []
 
@@ -37,17 +37,20 @@ class Proxy:
         self.hash_ring = HashRing()
 
     def add_server(self, server_id):
-        # TODO: only add to ring, when server queue = 5, and then empty server queue and re calculate ring.
-        # if self.serverQueue.lenght == 5:
-        #     hashring.addallnodes...
         if server_id not in self.servers:
-            ##self.servers.append(server_id)
-            print("here")
-            self.hash_ring.add_node(server_id)
+            self.servers.append(server_id)
+            print(f"P> SERVER QUEUE LENGHT: {len(self.serverQueue)+1}")
+            if len(self.serverQueue) < 4:
+                self.serverQueue.append(server_id)
+            else:
+                self.hash_ring.generate_ring(self.serverQueue)
+                self.hash_ring.print_key_ranges(index=True)
+                self.serverQueue.clear()
 
     def select_responsible_node(self, key):
+        print(f"P> NODE ({self.hash_ring.lookup_node(key)}) SELECTED")
         return self.hash_ring.lookup_node(key)
-    
+
     def run(self):
         try:
             self.poller.register(self.frontend_r, zmq.POLLIN)
@@ -89,9 +92,10 @@ class Proxy:
                     client_id = message[1].decode()
                     msg_data = message[2].decode()
                     print("P> C:", msg_data)
-                    
-                    if self.hash_ring.lookup_node("some_key"):
-                        # TODO: Instead of selecting node at position 0, call a hashring function to select the responsible node
+
+                    if self.hash_ring.lookup_node(client_id):
+                        # TODO: Instead of selecting node with client id, use list's uuid
+
                         server_uuid = self.select_responsible_node(client_id)
                         print("P> Sending to ", server_uuid)
                         self.backend_s.send_multipart(
@@ -127,7 +131,6 @@ if __name__ == "__main__":
     # proxy.add_server(new_server_id)
 
 
+# TO RUN SERVER -> PROXY -> CLIENT
 
-#TO RUN SERVER -> PROXY -> CLIENT
-
-#SERVER -> PROXY -> CLIENT -> 2ND CLIENT -> 2ND SERVER WORKS!
+# SERVER -> PROXY -> CLIENT -> 2ND CLIENT -> 2ND SERVER WORKS!

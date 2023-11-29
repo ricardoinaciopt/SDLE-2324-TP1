@@ -2,7 +2,11 @@ import zmq
 import uuid
 import time
 import random
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from ui import UI
 
 class Client:
     def __init__(self, node_type, proxy_address_s, proxy_address_r):
@@ -20,12 +24,12 @@ class Client:
         self.socket_r.connect(self.proxy_address_r)
         self.socket_s.connect(self.proxy_address_s)
 
-    def send_data(self, message):
+    def send_data(self, list_id):
         # TODO: Instead of sending message.encode(), send list_id.enconde()
-        self.socket_s.send_multipart([self.uuid.encode(), message.encode()])
+        self.socket_s.send_multipart([self.uuid.encode(), list_id.encode()])
         # DO NOT REMOVE: JUST FOR SUBSCRIBING
         self.socket_r.setsockopt_string(zmq.SUBSCRIBE, self.uuid)
-        print("C> SENT: ", message)
+        print("C> SENT: ", list_id)
         # response from server
         response = self.socket_r.recv_multipart()
         print(f"C> S: {response[1].decode()}")
@@ -34,7 +38,7 @@ class Client:
     def close(self):
         self.socket_r.close()
         self.socket_s.close()
-        self.context.term()
+        self.context.term()   
 
 
 # Example usage
@@ -47,13 +51,9 @@ if __name__ == "__main__":
 
     try:
         client.connect()
-
-        while True:
-            msg = "list_" + str(random.randint(0, 999999))
-            # TODO: send list_id as msg
-            client.send_data(msg)
-
-            time.sleep(1)
+        print(client.uuid)
+        
+        UI(client.uuid)
 
     finally:
         client.close()

@@ -4,6 +4,7 @@ import json
 import os
 
 
+
 class ShoppingList:
     def __init__(self):
         self.add_set = {}
@@ -150,10 +151,16 @@ class ShoppingList:
 
     def save_list_to_file(self, id, hasName=True):
         json_data = self.convert_to_json_format()
-        if (hasName == False):
-            filename = f"lists/list_"+str(self.uuid)+".json"
+
+        current_directory = os.path.dirname(__file__)
+
+        up_directory = os.path.dirname(current_directory)
+        root_directory = os.path.dirname(up_directory)
+
+        if hasName == False:
+            filename = os.path.join(root_directory, f"lists/list_{self.uuid}.json")
         else:
-            filename = f"lists/list_"+id+".json"
+            filename = os.path.join(root_directory, f"lists/list_{id}.json")
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
@@ -161,10 +168,38 @@ class ShoppingList:
             file.write(json_data)
         print(f"\nList saved as {filename}")
         
-    def load_list_from_file(self, filename):
-        filename = f"lists/"+filename
+    def save_list_client_to_file(self, id_list, id_client, hasName=True):
+        json_data = self.convert_to_json_format()
+
+        current_directory = os.path.dirname(__file__)
+
+        up_directory = os.path.dirname(current_directory)
+        root_directory = os.path.dirname(up_directory)
+
+        if hasName == False:
+            filename = os.path.join(root_directory, f"storage/client_{id_client}/list_{self.uuid}.json")
+        else:
+            filename = os.path.join(root_directory, f"storage/client_{id_client}/list_{id_list}.json")
+
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+        with open(filename, 'w') as file:
+            file.write(json_data)
+        print(f"\nList saved as {filename}")    
+
+        
+    def load_list_client_from_file(self, id_client,filename):
+        current_directory = os.path.dirname(__file__)
+
+        up_directory = os.path.dirname(current_directory)
+        root_directory = os.path.dirname(up_directory)
+        filename = os.path.join(root_directory, f"storage/client_{id_client}/{filename}")
         with open(filename, 'r') as file:
             json_data = json.load(file)
             for item in json_data["list"]:
                 self.add(item)
-            print(f"List loaded from {filename}")    
+            print(f"List loaded from {filename}")  
+        
+        
+
+    

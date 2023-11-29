@@ -67,7 +67,8 @@ class Server:
             if list_id != "ACK":
                 print(f"S> C: {list_id}")
                 # TODO: Instead of converting to lowercase, check if it has list, if not save on fodler with name = self.uuid, and then merge the list
-                list_to_send = list_id.upper()
+                list_to_send = "list_"+list_id.upper()
+                
                 self.socket_s.send_multipart(
                     [client_id, list_to_send.encode(), self.uuid.encode()]
                 )

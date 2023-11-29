@@ -15,7 +15,6 @@ class UI:
 
     def display_menu(self):
         print("Menu:")
-        # TODO: call add item to list after creation
         print("1. Create list")
         print("2. Print list")
         print("3. Add item to list")
@@ -32,6 +31,18 @@ class UI:
             shopping_list = ShoppingList()
             shopping_list.save_list_to_file("", False)
             print("List created:", shopping_list.uuid)
+            print("\n")
+            item_id = input("Insert the item id:")
+            item_acquired = 'false'
+            item_quantity = input("Insert the item quantity:")
+            item = {}
+            item['id'] = item_id
+            item['acquired'] = item_acquired
+            item['quantity'] = item_quantity
+            shopping_list.add(item)
+            shopping_list.print_list()
+            print(shopping_list.uuid)
+            shopping_list.save_list_to_file(str(shopping_list.uuid), True)
             print("\n")
         elif choice == "2":
             list_id = input("Insert the list id:")

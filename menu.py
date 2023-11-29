@@ -17,10 +17,22 @@ def get_user_choice():
 
 def process_choice(choice):
     if choice == "1":
-        shopping_list = ShoppingList()  
-        shopping_list.save_list_to_file('',False)
-        print("List created:", shopping_list.uuid)
-        print("\n")
+                shopping_list = ShoppingList()  
+                shopping_list.save_list_to_file('', False)
+                print("List created:", shopping_list.uuid)
+                print("\n")
+                item_id = input("Insert the item id:")
+                item_acquired = 'false'
+                item_quantity = input("Insert the item quantity:")
+                item = {}
+                item['id'] = item_id
+                item['acquired'] = item_acquired
+                item['quantity'] = item_quantity
+                shopping_list.add(item)
+                shopping_list.print_list()
+                print(shopping_list.uuid)
+                shopping_list.save_list_to_file(str(shopping_list.uuid), True)
+                print("\n")
     elif choice == "2":
         list_id = input("Insert the list id:")
         for filename in os.listdir('lists'):

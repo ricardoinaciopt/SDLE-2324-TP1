@@ -80,27 +80,28 @@ class Proxy:
                 if self.backend_r in sockets and self.backend_r.poll(0):
                     message = self.backend_r.recv_multipart()
 
-                    sub_msg = message[1]
-                    server_msg = message[2].decode()
+                    client_id = message[1]
+                    list_obj = message[2].decode()
                     s_id = message[3].decode()
 
-                    print(f"P> S({s_id}): {server_msg}")
+                    print(f"P> S({s_id}): {list_obj}")
 
-                    self.frontend_s.send_multipart([sub_msg, server_msg.encode()])
+                    self.frontend_s.send_multipart([client_id, list_obj.encode()])
 
                 if self.frontend_r in sockets and self.frontend_r.poll(0):
                     message = self.frontend_r.recv_multipart()
                     client_id = message[1].decode()
-                    msg_data = message[2].decode()
-                    print("P> C:", msg_data)
+                    list_id = message[2].decode()
+                    print("P> C:", list_id)
 
-                    if self.hash_ring.lookup_node(client_id):
+                    destination_node = self.hash_ring.lookup_node(list_id)
+                    if destination_node:
                         # TODO: Instead of selecting node with client id, use list's uuid
 
-                        server_uuid = self.select_responsible_node(client_id)
+                        server_uuid = destination_node
                         print("P> Sending to ", server_uuid)
                         self.backend_s.send_multipart(
-                            [server_uuid.encode(), msg_data.encode()]
+                            [server_uuid.encode(), list_id.encode(), client_id.encode()]
                         )
                     else:
                         print("NO SERVERS AVAILABLE")

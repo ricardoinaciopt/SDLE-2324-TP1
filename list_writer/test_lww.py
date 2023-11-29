@@ -87,7 +87,7 @@ def test_merge():
     received_list = pickle.loads(list_to_send)
     print("\n\nDeserialized list:", received_list.__dict__)
 
-    print(received_list.get_full_list())
+    print(type(received_list))
 
 
 if __name__ == "__main__":

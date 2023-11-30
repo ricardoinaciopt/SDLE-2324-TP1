@@ -43,33 +43,39 @@ class ShoppingList:
 
     def remove(self, item_id):
         current_time = time.time()
-        try:
-            if item_id in self.add_set and (item_id not in self.remove_set or self.remove_set[item_id]['timestamp'] < current_time):
-                self.remove_set[item_id] = {
-                    'timestamp': current_time,
-                    'quantity': self.add_set[item_id]['quantity'],
-                    'acquired': self.add_set[item_id]['acquired']
-                }
-            else:
-                raise TypeError("\nItem not in list")    
-        except TypeError as error:
-            print(str(error))
+        while True:
+            try:
+                if item_id in self.add_set and (item_id not in self.remove_set or self.remove_set[item_id]['timestamp'] < current_time):
+                    self.remove_set[item_id] = {
+                        'timestamp': current_time,
+                        'quantity': self.add_set[item_id]['quantity'],
+                        'acquired': self.add_set[item_id]['acquired']
+                    }
+                    break
+                else:
+                    raise TypeError("\nItem not in list")
+            except TypeError as error:
+                print(str(error))
+                item_id = input("Please enter a valid item_id: ")
 
     def acquire(self, item_id):
         current_time = time.time()
-        try:
-            if item_id in self.add_set and (item_id not in self.remove_set or self.remove_set[item_id]['timestamp'] < current_time):
-                if (self.add_set[item_id]['quantity'] == '1'):
-                    self.add_set[item_id]['quantity'] = '0'
-                    self.add_set[item_id]['acquired'] = 'true'
-                if (self.add_set[item_id]['quantity'] == '0'):
-                    raise TypeError("\nItem already acquired")    
-                else:    
-                    self.add_set[item_id]['quantity'] = str(int(self.add_set[item_id]['quantity']) - 1)
-            else:
-                raise TypeError("\nItem not in list")    
-        except TypeError as error:
-            print(str(error))
+        while True:
+            try:
+                if item_id in self.add_set and (item_id not in self.remove_set or self.remove_set[item_id]['timestamp'] < current_time):
+                    if self.add_set[item_id]['quantity'] == '1':
+                        self.add_set[item_id]['quantity'] = '0'
+                        self.add_set[item_id]['acquired'] = 'true'
+                    elif self.add_set[item_id]['quantity'] == '0':
+                        raise TypeError("\nItem already acquired")
+                    else:
+                        self.add_set[item_id]['quantity'] = str(int(self.add_set[item_id]['quantity']) - 1)
+                    break
+                else:
+                    raise TypeError("\nItem not in list")
+            except TypeError as error:
+                print(str(error))
+                item_id = input("Please enter a valid item_id: ")
     
     def compare(self, other):
         add_subset = set(self.add_set.keys()).issubset(other.add_set.keys())
@@ -147,26 +153,6 @@ class ShoppingList:
         }
         
         return json.dumps(list_json, indent=4)
-
-
-    def save_list_to_file(self, id, hasName=True):
-        json_data = self.convert_to_json_format()
-
-        current_directory = os.path.dirname(__file__)
-
-        up_directory = os.path.dirname(current_directory)
-        root_directory = os.path.dirname(up_directory)
-
-        if hasName == False:
-            filename = os.path.join(root_directory, f"lists/list_{self.uuid}.json")
-        else:
-            filename = os.path.join(root_directory, f"lists/list_{id}.json")
-
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-
-        with open(filename, 'w') as file:
-            file.write(json_data)
-        print(f"\nList saved as {filename}")
         
     def save_list_client_to_file(self, id_list, id_client, hasName=True):
         json_data = self.convert_to_json_format()

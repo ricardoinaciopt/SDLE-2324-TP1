@@ -21,6 +21,7 @@ def start_service(N):
             server = run_script("servers/server.py")
             time.sleep(1)
             servers.append(server)
+            
 
         print("\nSERVICE READY\n___")
 

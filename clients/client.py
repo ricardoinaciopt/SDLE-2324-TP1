@@ -52,8 +52,9 @@ if __name__ == "__main__":
     try:
         client.connect()
         print(client.uuid)
-        
-        UI(client.uuid)
+        #list_id=input("Give the list id: ")
+        #client.send_data(list_id)
+        UI(client)
 
     finally:
         client.close()

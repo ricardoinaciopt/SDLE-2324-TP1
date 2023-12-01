@@ -2,6 +2,8 @@ import sys
 import os
 from list_writer.LWW.lww import ShoppingList
 import shutil
+import pickle
+
 
 
 class UI:
@@ -45,6 +47,8 @@ class UI:
             shopping_list.print_list()
             print(shopping_list.uuid)
             shopping_list.save_list_client_to_file(str(shopping_list.uuid), self.client.uuid, True)
+            list_to_send = pickle.dumps(shopping_list)
+            self.client.send_data(list_to_send, str(shopping_list.uuid))
             print("\n")
         elif choice == "2":
             list_id = input("Insert the list id:")

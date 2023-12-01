@@ -24,11 +24,12 @@ class Client:
         self.socket_r.connect(self.proxy_address_r)
         self.socket_s.connect(self.proxy_address_s)
 
-    def send_data(self, list_id):
+    def send_data(self, list, list_id):
         # TODO: Instead of sending message.encode(), send list_id.enconde()
-        self.socket_s.send_multipart([self.uuid.encode(), list_id.encode()])
+        self.socket_s.send_multipart([self.uuid.encode(), list, list_id.encode()])
         # DO NOT REMOVE: JUST FOR SUBSCRIBING
         self.socket_r.setsockopt_string(zmq.SUBSCRIBE, self.uuid)
+        print("C> SENT: ", list)
         print("C> SENT: ", list_id)
         # response from server
         response = self.socket_r.recv_multipart()

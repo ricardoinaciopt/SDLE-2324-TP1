@@ -3,6 +3,7 @@ import os
 from list_writer.LWW.lww import ShoppingList
 import shutil
 import pickle
+import re
 
 
 class UI:
@@ -74,114 +75,74 @@ class UI:
         print("\n")
 
     def view_shopping_list(self):
-        list_id = input("Insert the list id:")
-        if self.get_list_not_created(self.client.uuid, list_id):
-            filename = "list_" + list_id + ".json"
-            shopping_list = ShoppingList()
-            shopping_list.load_list_client_from_file(self.client.uuid, filename)
+        list_id = self.check_list_id()
+        filename = "list_" + list_id + ".json"
+        shopping_list = ShoppingList()
+        list_res = shopping_list.load_list_client_from_file(self.client.uuid, filename)
+        if list_res != False:
             shopping_list.print_list()
-            print("\n")
+        print("\n")
 
     def add_item_to_shopping_list(self):
-        list_id = input("Insert the list id:")
-        if self.get_list_not_created(self.client.uuid, list_id):
-            filename = "list_" + list_id + ".json"
-            item_id = self.input_name()
-            item_acquired = "false"
-            item_quantity = self.input_quantity()
-            item = {}
-            item["id"] = item_id
-            item["acquired"] = item_acquired
-            item["quantity"] = str(item_quantity)
-            shopping_list = ShoppingList()
-            shopping_list_old = ShoppingList()
-            shopping_list.load_list_client_from_file(self.client.uuid, filename)
-            shopping_list.load_list_client_from_file(self.client.uuid, filename)
-            shopping_list.add(item)
-            shopping_list.merge(shopping_list_old)
-            shopping_list.print_list()
-            shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-            print("\n")
+        list_id = self.check_list_id()
+        filename = "list_" + list_id + ".json"
+        item_id = self.input_name()
+        item_acquired = "false"
+        item_quantity = self.input_quantity()
+        item = {}
+        item["id"] = item_id
+        item["acquired"] = item_acquired
+        item["quantity"] = str(item_quantity)
+        shopping_list = ShoppingList()
+        shopping_list.load_list_client_from_file(self.client.uuid, filename)
+        shopping_list.add(item)
+        shopping_list.print_list()
+        shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
+        self.save_list_in_server(l_id=list_id)
+        print("\n")
 
     def remove_item_from_shopping_list(self):
-        list_id = input("Insert the list id:")
-        if self.get_list_not_created(self.client.uuid, list_id):
-            filename = "list_" + list_id + ".json"
-            item_id = self.input_name()
-            shopping_list = ShoppingList()
-            print("shopping_list", shopping_list.uuid)
-            shopping_list_old = ShoppingList()
-            shopping_list.load_list_client_from_file(self.client.uuid, filename)
-            shopping_list.load_list_client_from_file(self.client.uuid, filename)
-            shopping_list.remove(item_id)
-            shopping_list.merge(shopping_list_old)
-            shopping_list.print_list()
-            shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-            print("\n")
+        list_id = self.check_list_id()
+        filename = "list_" + list_id + ".json"
+        item_id = self.input_name()
+        shopping_list = ShoppingList()
+        print("shopping_list", shopping_list.uuid)
+        shopping_list.load_list_client_from_file(self.client.uuid, filename)
+        shopping_list.remove(item_id)
+        shopping_list.print_list()
+        shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
+        self.save_list_in_server(l_id=list_id)
+        print("\n")
 
     def acquire_item_in_shopping_list(self):
-        list_id = input("Insert the list id:")
-        if self.get_list_not_created(self.client.uuid, list_id):
-            filename = "list_" + list_id + ".json"
-            item_id = self.input_name()
-            shopping_list = ShoppingList()
-            shopping_list_old = ShoppingList()
-            shopping_list.load_list_client_from_file(self.client.uuid, filename)
-            shopping_list_old.load_list_client_from_file(self.client.uuid, filename)
-            shopping_list.acquire(item_id)
-            shopping_list.merge(shopping_list_old)
-            shopping_list.print_list()
-            shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-            print("\n")
+        list_id = self.check_list_id()
+        filename = "list_" + list_id + ".json"
+        item_id = self.input_name()
+        shopping_list = ShoppingList()
+        shopping_list.load_list_client_from_file(self.client.uuid, filename)
+        shopping_list.acquire(item_id)
+        shopping_list.print_list()
+        shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
+        self.save_list_in_server(l_id=list_id)
+        print("\n")
 
     def get_list_from_server(self):
         list_id = input("Insert the list id: ")
         self.client.send_get(list_id)
-        
-    def save_list_in_server(self):
-        list_id = input("Insert the list id:")
+
+    def save_list_in_server(self, l_id=None):
+        if l_id == None:
+            list_id = self.check_list_id()
+        else:
+            list_id = l_id
         filename = "list_" + list_id + ".json"
         shopping_list = ShoppingList()
-        if (shopping_list.load_list_client_from_file(self.client.uuid, filename)):
+        if shopping_list.load_list_client_from_file(self.client.uuid, filename):
             list_to_send = pickle.dumps(shopping_list)
             self.client.send_data(list_to_send, str(list_id))
 
     def invalid_choice(self):
         print("Invalid choice")
-
-    def get_list_not_created(self, client_id, list_id):
-        current_directory = os.path.dirname(__file__)
-
-        storage_directory = os.path.join(current_directory, "storage")
-
-        for root, dirs, files in os.walk(storage_directory):
-            for file in files:
-                if file == f"list_{list_id}.json" and root != os.path.join(
-                    storage_directory, f"client_{client_id}"
-                ):
-                    print("ROOT:", root)
-                    print(
-                        "PATH", os.path.join(storage_directory, f"client_{client_id}")
-                    )
-                    client_dir = os.path.join(storage_directory, f"client_{client_id}")
-
-                    if not os.path.exists(client_dir):
-                        os.makedirs(client_dir)
-
-                    source_file = os.path.join(root, file)
-                    destination_file = os.path.join(client_dir, file)
-
-                    shutil.copy(source_file, destination_file)
-                    print(f"File copied to {destination_file}")
-
-                    return True
-                elif file == f"list_{list_id}.json" and root == os.path.join(
-                    storage_directory, f"client_{client_id}"
-                ):
-                    return True
-
-        print("List does not exist")
-        return False
 
     def input_name(self):
         while True:
@@ -198,11 +159,30 @@ class UI:
     def input_quantity(self):
         while True:
             try:
-                item_quantity = int(input("Insert the item quantity:"))
-                break
+                item_quantity = int(input("Insert the item quantity: "))
+                if item_quantity != 0:
+                    break
+                else:
+                    print("Quantity should not be equal to 0. Please try again.")
             except ValueError:
                 print("Invalid input. Please enter an integer.")
+
         return item_quantity
+
+    def check_list_id(self):
+        while True:
+            try:
+                input_id = input("Insert the list id: ")
+                if not re.match(
+                    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+                    input_id,
+                ):
+                    raise ValueError("Please enter a uuid4 list id.")
+                break
+            except ValueError as e:
+                print(f"Invalid input: {e}")
+
+        return str(input_id)
 
 
 if __name__ == "__main__":

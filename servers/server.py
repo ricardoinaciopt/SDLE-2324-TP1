@@ -74,23 +74,31 @@ class Server:
 
             client_id = response[2]
             list_id = response[3].decode()
-            print("RESP:", response[1])
             if list_id != "ACK":
-                if response[1] == b'GET_LIST':
+                if response[1] == b"GET_LIST":
                     # TODO: Casll function to get list with specidied ID
                     filename = self.get_list_from_storage(list_id)
-                    if (filename != None):
+                    if filename != None:
                         shopping_list_to_send = ShoppingList()
                         shopping_list_to_send.load_list_server_from_file(filename)
-                        shopping_list_to_send_coded = pickle.dumps(shopping_list_to_send)
+                        shopping_list_to_send_coded = pickle.dumps(
+                            shopping_list_to_send
+                        )
                         self.socket_s.send_multipart(
-                            [client_id, shopping_list_to_send_coded, list_id.encode(),self.uuid.encode()]
+                            [
+                                client_id,
+                                shopping_list_to_send_coded,
+                                list_id.encode(),
+                                self.uuid.encode(),
+                            ]
                         )
                     else:
-                        self.socket_s.send_multipart([client_id, b"", b"NOT FOUND", self.uuid.encode()])    
+                        self.socket_s.send_multipart(
+                            [client_id, b"", b"NOT FOUND", self.uuid.encode()]
+                        )
                 else:
                     list = pickle.loads(response[1])
-                    file=self.get_list_from_storage(list_id)
+                    file = self.get_list_from_storage(list_id)
                     if file == None:
                         print(f"S> C: {list_id}")
                         print(f"S> C: {list}")
@@ -105,19 +113,18 @@ class Server:
                     else:
                         print(f"S> C: {list_id}")
                         print(f"S> C: {list}")
-                        
+
                         shopping_list_old = ShoppingList()
                         shopping_list_old.load_list_server_from_file(file)
                         new_list = list.merge(shopping_list_old)
                         self.save_list_server_to_file(list_id, new_list.__dict__)
                         # print(self.convert_to_json_format(list.__dict__))
 
-                        
                         message = "MERGED WITH SERVER"
                         self.socket_s.send_multipart(
                             [client_id, message.encode(), self.uuid.encode()]
                         )
-                        print(f"S> SENT {message}")    
+                        print(f"S> SENT {message}")
             else:
                 self.socket_s.send_multipart([b"", b"", b""])
 
@@ -162,23 +169,21 @@ class Server:
         with open(filename, "w") as file:
             file.write(json_data)
         print(f"\nList saved as {filename}")
-      
+
     def get_list_from_storage(self, list_id):
         current_directory = os.path.dirname(__file__)
-        
+
         up_directory = os.path.dirname(current_directory)
-        
+
         storage_directory = os.path.join(up_directory, "storage")
         for root, dirs, files in os.walk(storage_directory):
             for file in files:
-                if file == f"list_{list_id}.json" and root == os.path.join(storage_directory, f"server_{self.uuid}"):
+                if file == f"list_{list_id}.json" and root == os.path.join(
+                    storage_directory, f"server_{self.uuid}"
+                ):
                     filename = os.path.join(root, file)
                     return filename
         return None
-    
-                
-                    
-
 
 
 if __name__ == "__main__":

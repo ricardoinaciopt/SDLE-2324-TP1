@@ -5,7 +5,8 @@ from hash_ring.hash_ring import HashRing
 import pickle
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from list_writer.LWW.lww import ShoppingList
 
 
@@ -96,22 +97,25 @@ class Proxy:
                 if self.frontend_r in sockets and self.frontend_r.poll(0):
                     message = self.frontend_r.recv_multipart()
                     client_id = message[1].decode()
-                    #list = pickle.loads(message[2])
-                    list_id= message[3].decode()
-                    #print("P> C:", list)
+                    # list = pickle.loads(message[2])
+                    list_id = message[3].decode()
+                    # print("P> C:", list)
                     print("P> C:", list_id)
-                    
 
                     destination_node = self.hash_ring.lookup_node(list_id)
                     if destination_node:
-                        # TODO: Instead of selecting node with client id, use list's uuid
-
                         server_uuid = destination_node
                         print("P> Sending to ", server_uuid)
-                        #list_to_send=pickle.dumps(list)
+                        # list_to_send=pickle.dumps(list)
                         self.backend_s.send_multipart(
-                            [server_uuid.encode(), message[2], client_id.encode(), list_id.encode()]
+                            [
+                                server_uuid.encode(),
+                                message[2],
+                                client_id.encode(),
+                                list_id.encode(),
+                            ]
                         )
+                        # TODO:
                     else:
                         print("NO SERVERS AVAILABLE")
 

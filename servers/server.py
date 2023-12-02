@@ -5,11 +5,9 @@ import pickle
 import sys
 import os
 import json
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from list_writer.LWW.lww import ShoppingList
-
-
-
 
 
 class Server:
@@ -71,20 +69,27 @@ class Server:
                 self.send_hello_request()
 
             response = self.socket_r.recv_multipart()
-            list = pickle.loads(response[1])
+
+            # check if its a get request
+
             client_id = response[2]
             list_id = response[3].decode()
             if list_id != "ACK":
-                print(f"S> C: {list_id}")
-                print(f"S> C: {list}")
-                #print(self.convert_to_json_format(list.__dict__))
-                
-                self.save_list_server_to_file(list_id, list.__dict__)
-                message = "SAVED IN SERVER"               
-                self.socket_s.send_multipart(
-                    [client_id, message.encode(), self.uuid.encode()]
-                )
-                print(f"S> SENT {message}")
+                if response[1] == "GET_LIST":
+                    # TODO: Casll function to get list with specidied ID
+                    self.get_list_from_storage()
+                else:
+                    list = pickle.loads(response[1])
+                    print(f"S> C: {list_id}")
+                    print(f"S> C: {list}")
+                    # print(self.convert_to_json_format(list.__dict__))
+
+                    self.save_list_server_to_file(list_id, list.__dict__)
+                    message = "SAVED IN SERVER"
+                    self.socket_s.send_multipart(
+                        [client_id, message.encode(), self.uuid.encode()]
+                    )
+                    print(f"S> SENT {message}")
             else:
                 self.socket_s.send_multipart([b"", b"", b""])
 
@@ -94,13 +99,13 @@ class Server:
         self.socket_hello.close()
         self.socket_s.close()
         self.context.term()
-        
-    def convert_to_json_format(self,server_list):
+
+    def convert_to_json_format(self, server_list):
         list_items = []
 
-        for item_id, item_details in server_list['add_set'].items():
-            acquired = item_details['acquired']
-            quantity = item_details['quantity']
+        for item_id, item_details in server_list["add_set"].items():
+            acquired = item_details["acquired"]
+            quantity = item_details["quantity"]
 
             list_item = {
                 "id": item_id,
@@ -109,13 +114,10 @@ class Server:
             }
             list_items.append(list_item)
 
-        list_json = {
-            "version": "1.0",
-            "list": list_items
-        }
-        
-        return json.dumps(list_json, indent=4)  
-    
+        list_json = {"version": "1.0", "list": list_items}
+
+        return json.dumps(list_json, indent=4)
+
     def save_list_server_to_file(self, id_list, list):
         json_data = self.convert_to_json_format(list)
 
@@ -123,14 +125,17 @@ class Server:
 
         root_directory = os.path.dirname(current_directory)
 
-        filename = os.path.join(root_directory, f"storage/server_{self.uuid}/list_{id_list}.json")
+        filename = os.path.join(
+            root_directory, f"storage/server_{self.uuid}/list_{id_list}.json"
+        )
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-        with open(filename, 'w') as file:
+        with open(filename, "w") as file:
             file.write(json_data)
-        print(f"\nList saved as {filename}")      
-        
+        print(f"\nList saved as {filename}")
+
+
 if __name__ == "__main__":
     server = Server(
         node_type="SERVER",

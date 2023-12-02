@@ -2,8 +2,9 @@ import hashlib
 
 
 class HashRing:
-    def __init__(self, nodes=None, virtual_nodes=3):
+    def __init__(self, nodes=None, virtual_nodes=3, replicas=2):
         self.virtual_nodes = virtual_nodes
+        self.replicas = replicas
         self.ring = {}
         self.sorted_keys = []
 
@@ -45,6 +46,28 @@ class HashRing:
                 return self.ring[ring_key]
 
         return self.ring[self.sorted_keys[0]]
+
+    def get_replica_nodes(self, key):
+        if not self.ring:
+            return None
+
+        hash_key = self._hash(key)
+
+        key_index = None
+        for i, ring_key in enumerate(self.sorted_keys):
+            if hash_key < ring_key:
+                key_index = i
+                break
+
+        if key_index is None:
+            key_index = 0
+
+        previous_nodes = []
+        for i in range(1, self.replicas + 1):
+            prev_index = (key_index - i) % len(self.sorted_keys)
+            previous_nodes.append(self.ring[self.sorted_keys[prev_index]])
+
+        return tuple(previous_nodes)
 
     def get_responsible_nodes(self):
         responsible_nodes = {}

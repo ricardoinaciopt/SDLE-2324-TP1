@@ -134,6 +134,7 @@ class UI:
 
     def get_list_from_server(self):
         list_id = input("Insert the list id: ")
+        self.client.send_get(list_id)
 
     def invalid_choice(self):
         print("Invalid choice")

@@ -185,6 +185,17 @@ class ShoppingList:
             for item in json_data["list"]:
                 self.add(item)
             print(f"List loaded from {filename}")  
+            
+    def load_list_server_from_file(self, filepath):
+       try: 
+        with open(filepath, 'r') as file:
+            json_data = json.load(file)
+            for item in json_data["list"]:
+                self.add(item)
+            print(f"List loaded from {filepath}")  
+       except:
+           print("File not found")
+           return None            
         
         
 

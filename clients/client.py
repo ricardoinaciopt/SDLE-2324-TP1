@@ -4,6 +4,7 @@ import time
 import random
 import sys
 import os
+import pickle
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -54,7 +55,13 @@ class Client:
         # try to upload to server
         try:
             response = self.socket_r.recv_multipart()
-            print(f"\nC> UPLOAD SUCCESSFUL: {response[1].decode()}")
+            list_id = response[2].decode()
+            if (list_id == "NOT FOUND"):
+                print("LIST NOT FOUND")
+            else:
+                list_from_server = pickle.loads(response[1])
+                list_from_server.save_list_client_to_file(list_id, self.uuid)
+                print("List saved locally")
         except zmq.error.Again as e:
             print(f"\nC> COULDN'T UPLOAD: {e}")
 

@@ -87,12 +87,13 @@ class Proxy:
                     message = self.backend_r.recv_multipart()
 
                     client_id = message[1]
-                    list_obj = message[2].decode()
-                    s_id = message[3].decode()
+                    list_id = message[3]
+                    #list_obj = message[2].decode()
+                    #s_id = message[3].decode()
 
-                    print(f"P> S({s_id}): {list_obj}")
+                    #print(f"P> S({s_id}): {list_obj}")
 
-                    self.frontend_s.send_multipart([client_id, list_obj.encode()])
+                    self.frontend_s.send_multipart([client_id, message[2], list_id])
 
                 if self.frontend_r in sockets and self.frontend_r.poll(0):
                     message = self.frontend_r.recv_multipart()

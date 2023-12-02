@@ -90,16 +90,34 @@ class Server:
                         self.socket_s.send_multipart([client_id, b"", b"NOT FOUND", self.uuid.encode()])    
                 else:
                     list = pickle.loads(response[1])
-                    print(f"S> C: {list_id}")
-                    print(f"S> C: {list}")
-                    # print(self.convert_to_json_format(list.__dict__))
+                    file=self.get_list_from_storage(list_id)
+                    if file == None:
+                        print(f"S> C: {list_id}")
+                        print(f"S> C: {list}")
+                        # print(self.convert_to_json_format(list.__dict__))
 
-                    self.save_list_server_to_file(list_id, list.__dict__)
-                    message = "SAVED IN SERVER"
-                    self.socket_s.send_multipart(
-                        [client_id, message.encode(), self.uuid.encode()]
-                    )
-                    print(f"S> SENT {message}")
+                        self.save_list_server_to_file(list_id, list.__dict__)
+                        message = "SAVED IN SERVER"
+                        self.socket_s.send_multipart(
+                            [client_id, message.encode(), self.uuid.encode()]
+                        )
+                        print(f"S> SENT {message}")
+                    else:
+                        print(f"S> C: {list_id}")
+                        print(f"S> C: {list}")
+                        
+                        shopping_list_old = ShoppingList()
+                        shopping_list_old.load_list_server_from_file(file)
+                        new_list = list.merge(shopping_list_old)
+                        self.save_list_server_to_file(list_id, new_list.__dict__)
+                        # print(self.convert_to_json_format(list.__dict__))
+
+                        
+                        message = "MERGED WITH SERVER"
+                        self.socket_s.send_multipart(
+                            [client_id, message.encode(), self.uuid.encode()]
+                        )
+                        print(f"S> SENT {message}")    
             else:
                 self.socket_s.send_multipart([b"", b"", b""])
 
@@ -156,7 +174,9 @@ class Server:
                 if file == f"list_{list_id}.json" and root == os.path.join(storage_directory, f"server_{self.uuid}"):
                     filename = os.path.join(root, file)
                     return filename
-        return None        
+        return None
+    
+                
                     
 
 

@@ -28,6 +28,7 @@ class UI:
         print("4. Remove item from list")
         print("5. Acquire item")
         print("6. Get list from server")
+        print("7. Save list in server")
         print("0. Exit")
 
     def get_user_choice(self):
@@ -43,6 +44,7 @@ class UI:
             "4": self.remove_item_from_shopping_list,
             "5": self.acquire_item_in_shopping_list,
             "6": self.get_list_from_server,
+            "7": self.save_list_in_server,
             "0": exit,
         }
 
@@ -135,6 +137,14 @@ class UI:
     def get_list_from_server(self):
         list_id = input("Insert the list id: ")
         self.client.send_get(list_id)
+        
+    def save_list_in_server(self):
+        list_id = input("Insert the list id:")
+        filename = "list_" + list_id + ".json"
+        shopping_list = ShoppingList()
+        if (shopping_list.load_list_client_from_file(self.client.uuid, filename)):
+            list_to_send = pickle.dumps(shopping_list)
+            self.client.send_data(list_to_send, str(list_id))
 
     def invalid_choice(self):
         print("Invalid choice")

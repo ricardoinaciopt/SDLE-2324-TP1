@@ -180,11 +180,16 @@ class ShoppingList:
         up_directory = os.path.dirname(current_directory)
         root_directory = os.path.dirname(up_directory)
         filename = os.path.join(root_directory, f"storage/client_{id_client}/{filename}")
-        with open(filename, 'r') as file:
-            json_data = json.load(file)
-            for item in json_data["list"]:
-                self.add(item)
-            print(f"List loaded from {filename}")  
+        if os.path.isfile(filename):
+            with open(filename, 'r') as file:
+                json_data = json.load(file)
+                for item in json_data["list"]:
+                    self.add(item)
+                print(f"List loaded from {filename}")
+            return True      
+        else:
+            print("File not found")
+            return False        
             
     def load_list_server_from_file(self, filepath):
        try: 

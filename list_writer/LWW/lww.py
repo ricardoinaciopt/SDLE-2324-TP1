@@ -140,6 +140,8 @@ class ShoppingList:
     def get_full_list(self):
         full_list = []
         for item_id in self.add_set.keys():
+            print("ITem_id", item_id)
+            print("LOOKUP", self.lookup(item_id))
             if self.lookup(item_id):
                 item_details = self.add_set[item_id]
                 full_list.append(

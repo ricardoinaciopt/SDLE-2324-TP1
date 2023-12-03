@@ -27,6 +27,7 @@ class Server:
         self.uuid = str(uuid.uuid4())
         self.node_type = node_type
         self.isAssigned = False
+        self.shopping_lists = {}
         self.proxy_address_s = proxy_address_s
         self.proxy_address_r = proxy_address_r
         self.proxy_address_ack = proxy_address_ack
@@ -97,27 +98,33 @@ class Server:
                             [client_id, b"", b"NOT FOUND", self.uuid.encode()]
                         )
                 else:
-                    list = pickle.loads(response[1])
                     file = self.get_list_from_storage(list_id)
                     if file == None:
+                        list = pickle.loads(response[1])
                         print(f"S> C: {list_id}")
                         print(f"S> C: {list}")
                         # print(self.convert_to_json_format(list.__dict__))
 
-                        self.save_list_server_to_file(list_id, list.__dict__)
+                        self.save_list_server_to_file(list_id, list)
                         message = "SAVED IN SERVER"
                         self.socket_s.send_multipart(
                             [client_id, message.encode(), self.uuid.encode()]
                         )
                         print(f"S> SENT {message}")
+                        self.shopping_lists[list_id] = list
                     else:
                         print(f"S> C: {list_id}")
                         print(f"S> C: {list}")
 
-                        shopping_list_old = ShoppingList()
-                        shopping_list_old.load_list_server_from_file(file)
+                        #shopping_list_old = ShoppingList()
+                        #shopping_list_old.load_list_server_from_file(file)
+                        shopping_list_old = self.get_list(list_id)
+                        list = pickle.loads(response[1])
+                        print("ACTUAL:", list.__dict__)
+                        print("OLD:", shopping_list_old.__dict__)
                         new_list = list.merge(shopping_list_old)
-                        self.save_list_server_to_file(list_id, new_list.__dict__)
+                        print("NEW:", new_list.__dict__)
+                        self.save_list_server_to_file(list_id, new_list)
                         # print(self.convert_to_json_format(list.__dict__))
 
                         message = "MERGED WITH SERVER"
@@ -125,9 +132,23 @@ class Server:
                             [client_id, message.encode(), self.uuid.encode()]
                         )
                         print(f"S> SENT {message}")
+                        self.shopping_lists[list_id] = new_list
+                for key in self.shopping_lists:
+                    self.instantiate_lists(key)
+                            
             else:
                 self.socket_s.send_multipart([b"", b"", b""])
 
+    def instantiate_lists(self, list_id):       
+        self.shopping_lists[list_id] = ShoppingList()
+        self.shopping_lists[list_id].load_list_server_from_file(self.get_list_from_storage(list_id))
+    
+    def get_list(self, list_id):
+        if list_id in self.shopping_lists:
+            return self.shopping_lists[list_id]
+        else:
+            return None
+        
     def close(self):
         self.socket_r.close()
         self.socket_ack.close()
@@ -135,26 +156,8 @@ class Server:
         self.socket_s.close()
         self.context.term()
 
-    def convert_to_json_format(self, server_list):
-        list_items = []
-
-        for item_id, item_details in server_list["add_set"].items():
-            acquired = item_details["acquired"]
-            quantity = item_details["quantity"]
-
-            list_item = {
-                "id": item_id,
-                "acquired": acquired,
-                "quantity": quantity,
-            }
-            list_items.append(list_item)
-
-        list_json = {"version": "1.0", "list": list_items}
-
-        return json.dumps(list_json, indent=4)
-
     def save_list_server_to_file(self, id_list, list):
-        json_data = self.convert_to_json_format(list)
+        json_data = list.convert_to_json_format()
 
         current_directory = os.path.dirname(__file__)
 

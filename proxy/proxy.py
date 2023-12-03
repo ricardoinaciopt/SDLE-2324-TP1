@@ -98,17 +98,35 @@ class Proxy:
                 if self.frontend_r in sockets and self.frontend_r.poll(0):
                     message = self.frontend_r.recv_multipart()
                     client_id = message[1].decode()
-                    # list = pickle.loads(message[2])
                     list_id = message[3].decode()
-                    # print("P> C:", list)
                     print("P> C:", list_id)
 
                     destination_node = self.hash_ring.lookup_node(list_id)
                     if destination_node:
+                        replica_nodes = self.hash_ring.get_replica_nodes(list_id)
                         server_uuid = destination_node
-                        print("P> Sending to ", server_uuid)
-                        # list_to_send=pickle.dumps(list)
-                        self.backend_s.send_multipart(
+                        if replica_nodes:
+                            print("P> Sending to primary:",server_uuid, " and replicas:", replica_nodes)
+                            self.backend_s.send_multipart(
+                                [
+                                    server_uuid.encode(),
+                                    message[2],
+                                    client_id.encode(),
+                                    list_id.encode(),
+                                ]
+                            )
+                            for replica_node in replica_nodes:
+                                self.backend_s.send_multipart(
+                                    [
+                                        replica_node.encode(),
+                                        message[2],
+                                        client_id.encode(),
+                                        list_id.encode(),
+                                    ]
+                                )                         
+                        else:
+                            print("No replicas available only sending to primary:", server_uuid)
+                            self.backend_s.send_multipart(
                             [
                                 server_uuid.encode(),
                                 message[2],
@@ -116,7 +134,7 @@ class Proxy:
                                 list_id.encode(),
                             ]
                         )
-                        # TODO:
+  
                     else:
                         print("NO SERVERS AVAILABLE")
 

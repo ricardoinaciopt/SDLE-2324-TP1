@@ -46,7 +46,7 @@ class UI:
             "5": self.acquire_item_in_shopping_list,
             "6": self.get_list_from_server,
             "7": self.save_list_in_server,
-            "0": exit,
+            "0": self.exiting,
         }
 
         option = menu_options.get(choice, self.invalid_choice)
@@ -54,9 +54,6 @@ class UI:
 
     def create_shopping_list(self):
         shopping_list = ShoppingList()
-        shopping_list.save_list_client_to_file("", self.client.uuid, False)
-        print("List created:", shopping_list.uuid)
-        print("\n")
         item_id = self.input_name()
         item_acquired = "false"
         item_quantity = self.input_quantity()
@@ -98,7 +95,7 @@ class UI:
         shopping_list.add(item)
         shopping_list.print_list()
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-        self.save_list_in_server(shopping_list, l_id=list_id)
+        self.save_list_in_server(l_id=list_id)
         print("\n")
 
     def remove_item_from_shopping_list(self):
@@ -111,7 +108,7 @@ class UI:
         shopping_list.remove(item_id)
         shopping_list.print_list()
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-        self.save_list_in_server(shopping_list, l_id=list_id)
+        self.save_list_in_server(l_id=list_id)
         print("\n")
 
     def acquire_item_in_shopping_list(self):
@@ -123,23 +120,29 @@ class UI:
         shopping_list.acquire(item_id)
         shopping_list.print_list()
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-        self.save_list_in_server(shopping_list, l_id=list_id)
+        self.save_list_in_server(l_id=list_id)
         print("\n")
 
     def get_list_from_server(self):
-        list_id = input("Insert the list id: ")
+        list_id = self.check_list_id()
         self.client.send_get(list_id)
 
-    def save_list_in_server(self, list, l_id=None):
+    def save_list_in_server(self, l_id=None):
         if l_id == None:
             list_id = self.check_list_id()
         else:
             list_id = l_id
-        list_to_send = pickle.dumps(list)
-        self.client.send_data(list_to_send, str(list_id))
+        filename = "list_" + list_id + ".json"
+        shopping_list = ShoppingList()
+        if shopping_list.load_list_client_from_file(self.client.uuid, filename):
+            list_to_send = pickle.dumps(shopping_list)
+            self.client.send_data(list_to_send, str(list_id))
 
     def invalid_choice(self):
-        print("Invalid choice")
+        print("INVALID CHOICE")
+
+    def exiting(self):
+        print("EXITING...")
 
     def input_name(self):
         while True:

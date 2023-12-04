@@ -140,8 +140,6 @@ class ShoppingList:
     def get_full_list(self):
         full_list = []
         for item_id in self.add_set.keys():
-            print("ITem_id", item_id)
-            print("LOOKUP", self.lookup(item_id))
             if self.lookup(item_id):
                 item_details = self.add_set[item_id]
                 full_list.append(
@@ -181,14 +179,9 @@ class ShoppingList:
         up_directory = os.path.dirname(current_directory)
         root_directory = os.path.dirname(up_directory)
 
-        if hasName == False:
-            filename = os.path.join(
-                root_directory, f"storage/client_{id_client}/list_{self.uuid}.json"
-            )
-        else:
-            filename = os.path.join(
-                root_directory, f"storage/client_{id_client}/list_{id_list}.json"
-            )
+        filename = os.path.join(
+            root_directory, "storage", f"client_{id_client}", f"list_{id_list}.json"
+        )
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
@@ -202,7 +195,7 @@ class ShoppingList:
         up_directory = os.path.dirname(current_directory)
         root_directory = os.path.dirname(up_directory)
         filename = os.path.join(
-            root_directory, f"storage/client_{id_client}/{filename}"
+            root_directory, "storage", f"client_{ id_client}", filename
         )
         if os.path.isfile(filename):
             with open(filename, "r") as file:

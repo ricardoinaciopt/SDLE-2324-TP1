@@ -88,10 +88,6 @@ class Proxy:
 
                     client_id = message[1]
                     list_id = message[3]
-                    #list_obj = message[2].decode()
-                    #s_id = message[3].decode()
-
-                    #print(f"P> S({s_id}): {list_obj}")
 
                     self.frontend_s.send_multipart([client_id, message[2], list_id])
 
@@ -103,30 +99,9 @@ class Proxy:
 
                     destination_node = self.hash_ring.lookup_node(list_id)
                     if destination_node:
-                        replica_nodes = self.hash_ring.get_replica_nodes(list_id)
+                        # SEND TO DESTINATION
                         server_uuid = destination_node
-                        if replica_nodes:
-                            print("P> Sending to primary:",server_uuid, " and replicas:", replica_nodes)
-                            self.backend_s.send_multipart(
-                                [
-                                    server_uuid.encode(),
-                                    message[2],
-                                    client_id.encode(),
-                                    list_id.encode(),
-                                ]
-                            )
-                            for replica_node in replica_nodes:
-                                self.backend_s.send_multipart(
-                                    [
-                                        replica_node.encode(),
-                                        message[2],
-                                        client_id.encode(),
-                                        list_id.encode(),
-                                    ]
-                                )                         
-                        else:
-                            print("No replicas available only sending to primary:", server_uuid)
-                            self.backend_s.send_multipart(
+                        self.backend_s.send_multipart(
                             [
                                 server_uuid.encode(),
                                 message[2],
@@ -134,7 +109,28 @@ class Proxy:
                                 list_id.encode(),
                             ]
                         )
-  
+                        # IF IT'S NOT A GET
+                        if message[2] != b"GET_LIST":
+                            replica_nodes = self.hash_ring.get_replica_nodes(list_id)
+
+                            if replica_nodes:
+                                print(
+                                    "P> Sending to primary:",
+                                    server_uuid,
+                                    " and replicas:",
+                                    replica_nodes,
+                                )
+
+                                for replica_node in replica_nodes:
+                                    self.backend_s.send_multipart(
+                                        [
+                                            replica_node.encode(),
+                                            message[2],
+                                            client_id.encode(),
+                                            list_id.encode(),
+                                        ]
+                                    )
+
                     else:
                         print("NO SERVERS AVAILABLE")
 
@@ -160,11 +156,3 @@ if __name__ == "__main__":
         backend_port_hello=5576,
     )
     proxy.run()
-
-    # new_server_id = "some_new_server"
-    # proxy.add_server(new_server_id)
-
-
-# TO RUN SERVER -> PROXY -> CLIENT
-
-# SERVER -> PROXY -> CLIENT -> 2ND CLIENT -> 2ND SERVER WORKS!

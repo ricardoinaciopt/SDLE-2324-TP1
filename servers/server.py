@@ -70,14 +70,13 @@ class Server:
                 self.send_hello_request()
 
             response = self.socket_r.recv_multipart()
-
             # check if its a get request
-
             client_id = response[2]
             list_id = response[3].decode()
+
             if list_id != "ACK":
                 if response[1] == b"GET_LIST":
-                    # TODO: Casll function to get list with specidied ID
+                    print("\nS> SENDING LIST")
                     filename = self.get_list_from_storage(list_id)
                     if filename != None:
                         shopping_list_to_send = ShoppingList()
@@ -102,8 +101,6 @@ class Server:
                     if file == None:
                         list = pickle.loads(response[1])
                         print(f"S> C: {list_id}")
-                        print(f"S> C: {list}")
-                        # print(self.convert_to_json_format(list.__dict__))
 
                         self.save_list_server_to_file(list_id, list)
                         message = "SAVED IN SERVER"
@@ -114,20 +111,16 @@ class Server:
                         self.shopping_lists[list_id] = list
                     else:
                         print(f"S> C: {list_id}")
-                        print(f"S> C: {list}")
 
-                        #shopping_list_old = ShoppingList()
-                        #shopping_list_old.load_list_server_from_file(file)
                         shopping_list_old = self.get_list(list_id)
-                        list = pickle.loads(response[1])
-                        print("ACTUAL:", list.__dict__)
-                        print("OLD:", shopping_list_old.__dict__)
-                        new_list = list.merge(shopping_list_old)
-                        print("NEW:", new_list.__dict__)
-                        self.save_list_server_to_file(list_id, new_list)
-                        # print(self.convert_to_json_format(list.__dict__))
 
-                        message = "MERGED WITH SERVER"
+                        list = pickle.loads(response[1])
+
+                        new_list = list.merge(shopping_list_old)
+
+                        self.save_list_server_to_file(list_id, new_list)
+
+                        message = "MERGED IN SERVER"
                         self.socket_s.send_multipart(
                             [client_id, message.encode(), self.uuid.encode()]
                         )
@@ -135,20 +128,22 @@ class Server:
                         self.shopping_lists[list_id] = new_list
                 for key in self.shopping_lists:
                     self.instantiate_lists(key)
-                            
+
             else:
                 self.socket_s.send_multipart([b"", b"", b""])
 
-    def instantiate_lists(self, list_id):       
+    def instantiate_lists(self, list_id):
         self.shopping_lists[list_id] = ShoppingList()
-        self.shopping_lists[list_id].load_list_server_from_file(self.get_list_from_storage(list_id))
-    
+        self.shopping_lists[list_id].load_list_server_from_file(
+            self.get_list_from_storage(list_id)
+        )
+
     def get_list(self, list_id):
         if list_id in self.shopping_lists:
             return self.shopping_lists[list_id]
         else:
             return None
-        
+
     def close(self):
         self.socket_r.close()
         self.socket_ack.close()
@@ -164,7 +159,7 @@ class Server:
         root_directory = os.path.dirname(current_directory)
 
         filename = os.path.join(
-            root_directory, f"storage/server_{self.uuid}/list_{id_list}.json"
+            root_directory, "storage", f"server_{self.uuid}", f"list_{id_list}.json"
         )
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)

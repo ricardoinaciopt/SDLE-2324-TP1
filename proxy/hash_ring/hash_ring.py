@@ -33,17 +33,24 @@ class HashRing:
 
     def remove_node(self, node):
         keys_to_remove = []
+        keys_to_remove = []
         for i in range(self.virtual_nodes):
             hash_key = self._hash(f"{node}-{i+1}")
             if hash_key in self.ring:
-                del self.ring[hash_key]
                 keys_to_remove.append(hash_key)
                 print(f"HR> REMOVED {node} [VN {i+1}] ({hash_key})")
 
         for key in keys_to_remove:
             self.sorted_keys.remove(key)
 
-        self.sorted_keys.sort()
+        new_ring = {}
+        for key in self.sorted_keys:
+            new_ring[key] = self.ring[key]
+
+        self.ring = new_ring
+
+        # new ranges
+        self.print_key_ranges(index=True)
 
     def lookup_node(self, key):
         if not self.ring:

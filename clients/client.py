@@ -31,46 +31,59 @@ class Client:
         self.socket_s.setsockopt(zmq.SNDTIMEO, 1000)
 
     def send_data(self, list, list_id):
-        self.socket_s.send_multipart([self.uuid.encode(), list, list_id.encode()])
-        print("\nC> UPLOADING LIST: ", list_id)
-
         # try to upload to server
-        try:
-            merge_msg = self.socket_r.recv_multipart()
-            saved_msg = self.socket_r.recv_multipart()
-            response = self.socket_r.recv_multipart()
-            print(f"\nC> UPLOAD SUCCESSFUL: {response[1].decode()}")
-        except zmq.error.Again as e:
-            print(f"\nC> COULDN'T UPLOAD: {e}")
+
+        tries = 0
+        while tries != 3:
+            tries += 1
+            try:
+                self.socket_s.send_multipart(
+                    [self.uuid.encode(), list, list_id.encode()]
+                )
+                print("\nC> UPLOADING LIST: ", list_id)
+                print(f"\nC> [TRIES: {tries}]")
+
+                merge_msg = self.socket_r.recv_multipart()
+                saved_msg = self.socket_r.recv_multipart()
+                response = self.socket_r.recv_multipart()
+                print(f"\nC> UPLOAD SUCCESSFUL: {response[1].decode()}")
+                break
+            except zmq.error.Again as e:
+                print(f"\nC> COULDN'T UPLOAD: {e}")
+        print("C> LIST SAVED LOCALLY")
 
     def send_get(self, list_id):
-        self.socket_s.send_multipart(
-            [self.uuid.encode(), b"GET_LIST", list_id.encode()]
-        )
-
-        print("\nC> WAITING FOR LIST...")
-        try:
-            response = self.socket_r.recv_multipart()
-
-            print("REC:", response)
-
-            list_id = response[2].decode()
-            if list_id == "NOT FOUND":
-                print("\nC> LIST NOT FOUND")
-            elif (response[1] == b"MERGED IN SERVER") or (
-                response[1] == b"SAVED IN SERVER"
-            ):
-                print("\nC> NO LIST RECEIVED")
-
-            else:
-                list_from_server = pickle.loads(response[1])
-                list_from_server.save_list_client_to_file(
-                    id_list=list_id, id_client=self.uuid
+        tries = 0
+        while tries != 3:
+            try:
+                tries += 1
+                self.socket_s.send_multipart(
+                    [self.uuid.encode(), b"GET_LIST", list_id.encode()]
                 )
-                print("C> LIST SAVED LOCALLY")
 
-        except zmq.error.Again as e:
-            print(f"\nC> COULDN'T GET: {e}")
+                print("\nC> WAITING FOR LIST...")
+                print(f"\nC> [TRIES: {tries}]")
+
+                response = self.socket_r.recv_multipart()
+
+                list_id = response[2].decode()
+                if list_id == "NOT FOUND":
+                    print("\nC> LIST NOT FOUND")
+                elif (response[1] == b"MERGED IN SERVER") or (
+                    response[1] == b"SAVED IN SERVER"
+                ):
+                    print("\nC> NO LIST RECEIVED")
+
+                else:
+                    list_from_server = pickle.loads(response[1])
+                    list_from_server.save_list_client_to_file(
+                        id_list=list_id, id_client=self.uuid
+                    )
+
+                    break
+
+            except zmq.error.Again as e:
+                print(f"\nC> COULDN'T GET: {e}")
 
     def close(self):
         self.socket_r.close()

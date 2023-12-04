@@ -117,68 +117,75 @@ class Proxy:
                     list_id = message[3].decode()
                     print("P> C:", list_id)
 
-                    destination_node = self.hash_ring.lookup_node(list_id)
-                    if destination_node:
-                        # REACH DESTINATION
-                        try:
-                            print(
-                                "\nP> SENDING S_REACH: ",
-                                destination_node,
-                            )
-                            self.backend_reach.send_multipart(
-                                [
-                                    destination_node.encode(),
-                                    b"S_REACH",
-                                ]
-                            )
-
-                            s_online = self.backend_online.recv_multipart()
-
-                            if s_online[2] == b"S_ONLINE":
-                                print("\nP> S_ONLINE RECEIVED")
-
-                        except zmq.error.ZMQError as e:
-                            print(f"\nC> COULDN'T REACH SERVER: {e}")
-                            self.remove_server(server_uuid)
-
-                        # SEND TO DESTINATION
-                        server_uuid = destination_node
-                        try:
-                            self.backend_s.send_multipart(
-                                [
-                                    server_uuid.encode(),
-                                    message[2],
-                                    client_id.encode(),
-                                    list_id.encode(),
-                                ]
-                            )
-
-                            print("\nP> Sending to primary: ", server_uuid)
-                        except zmq.error.ZMQError as e:
-                            print(f"\nC> COULDN'T REACH SERVER: {e}")
-                            self.remove_server(server_uuid)
-                        # IF IT'S NOT A GET
-                        if message[2] != b"GET_LIST":
-                            replica_nodes = self.hash_ring.get_replica_nodes(list_id)
-
-                            if replica_nodes:
+                    tries = 0
+                    while tries != 3:
+                        tries += 1
+                        print(f"\nP> [TRIES: {tries}]")
+                        destination_node = self.hash_ring.lookup_node(list_id)
+                        if destination_node:
+                            # REACH DESTINATION
+                            try:
                                 print(
-                                    "\nP> Sending to replicas:",
-                                    replica_nodes,
+                                    "\nP> SENDING S_REACH: ",
+                                    destination_node,
+                                )
+                                self.backend_reach.send_multipart(
+                                    [
+                                        destination_node.encode(),
+                                        b"S_REACH",
+                                    ]
                                 )
 
-                                for replica_node in replica_nodes:
-                                    self.backend_s.send_multipart(
-                                        [
-                                            replica_node.encode(),
-                                            message[2],
-                                            client_id.encode(),
-                                            list_id.encode(),
-                                        ]
+                                s_online = self.backend_online.recv_multipart()
+
+                                if s_online[2] == b"S_ONLINE":
+                                    print("\nP> S_ONLINE RECEIVED")
+
+                            except zmq.error.ZMQError as e:
+                                print(f"\nP> COULDN'T REACH SERVER: {e}")
+                                self.remove_server(server_uuid)
+
+                            # SEND TO DESTINATION
+                            server_uuid = destination_node
+                            try:
+                                self.backend_s.send_multipart(
+                                    [
+                                        server_uuid.encode(),
+                                        message[2],
+                                        client_id.encode(),
+                                        list_id.encode(),
+                                    ]
+                                )
+
+                                print("\nP> Sending to primary: ", server_uuid)
+                            except zmq.error.ZMQError as e:
+                                print(f"\nC> COULDN'T REACH SERVER: {e}")
+                                self.remove_server(server_uuid)
+                            # IF IT'S NOT A GET
+                            if message[2] != b"GET_LIST":
+                                replica_nodes = self.hash_ring.get_replica_nodes(
+                                    list_id
+                                )
+
+                                if replica_nodes:
+                                    print(
+                                        "\nP> Sending to replicas:",
+                                        replica_nodes,
                                     )
 
-                    else:
-                        print("NO SERVERS AVAILABLE")
+                                    for replica_node in replica_nodes:
+                                        self.backend_s.send_multipart(
+                                            [
+                                                replica_node.encode(),
+                                                message[2],
+                                                client_id.encode(),
+                                                list_id.encode(),
+                                            ]
+                                        )
+                            break
+
+                        else:
+                            print("NO SERVERS AVAILABLE")
 
         except zmq.error.ContextTerminated:
             pass

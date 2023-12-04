@@ -1,4 +1,5 @@
 import hashlib
+import os
 
 
 class HashRing:
@@ -33,12 +34,26 @@ class HashRing:
 
     def remove_node(self, node):
         keys_to_remove = []
-        keys_to_remove = []
         for i in range(self.virtual_nodes):
-            hash_key = self._hash(f"{node}-{i+1}")
+            hash_key = self._hash(f"{node}-{i}")
             if hash_key in self.ring:
                 keys_to_remove.append(hash_key)
                 print(f"HR> REMOVED {node} [VN {i+1}] ({hash_key})")
+
+        next_node_index = (self.sorted_keys.index(keys_to_remove[-1]) + 1) % len(
+            self.sorted_keys
+        )
+        next_node = self.sorted_keys[next_node_index]
+
+        source_location = f"server_{node}"
+        destination_location = f"server_{next_node}"
+        if os.path.exists(source_location):
+            os.makedirs(destination_location, exist_ok=True)
+            files = os.listdir(source_location)
+            for file in files:
+                source_path = os.path.join(source_location, file)
+                destination_path = os.path.join(destination_location, file)
+                shutil.move(source_path, destination_path)
 
         for key in keys_to_remove:
             self.sorted_keys.remove(key)
@@ -48,9 +63,6 @@ class HashRing:
             new_ring[key] = self.ring[key]
 
         self.ring = new_ring
-
-        # new ranges
-        self.print_key_ranges(index=True)
 
     def lookup_node(self, key):
         if not self.ring:

@@ -14,6 +14,8 @@ class Server:
     def __init__(
         self,
         node_type,
+        proxy_address_reach,
+        proxy_address_online,
         proxy_address_s,
         proxy_address_r,
         proxy_address_ack,
@@ -22,6 +24,8 @@ class Server:
         self.context = zmq.Context()
         self.socket_s = self.context.socket(zmq.DEALER)
         self.socket_r = self.context.socket(zmq.SUB)
+        self.socket_reach = self.context.socket(zmq.SUB)
+        self.socket_online = self.context.socket(zmq.DEALER)
         self.socket_ack = self.context.socket(zmq.SUB)
         self.socket_hello = self.context.socket(zmq.DEALER)
         self.uuid = str(uuid.uuid4())
@@ -32,15 +36,22 @@ class Server:
         self.proxy_address_r = proxy_address_r
         self.proxy_address_ack = proxy_address_ack
         self.proxy_address_hello = proxy_address_hello
+        self.proxy_address_reach = proxy_address_reach
+        self.proxy_address_online = proxy_address_online
+
+        self.poller = zmq.Poller()
 
         print("\n--------\nS> STARTED:", self.uuid)
 
     def connect(self):
         self.socket_r.connect(self.proxy_address_r)
         self.socket_r.setsockopt_string(zmq.SUBSCRIBE, self.uuid)
+        self.socket_reach.connect(self.proxy_address_reach)
+        self.socket_reach.setsockopt_string(zmq.SUBSCRIBE, self.uuid)
         self.socket_ack.connect(self.proxy_address_ack)
         self.socket_ack.setsockopt_string(zmq.SUBSCRIBE, self.uuid)
         self.socket_hello.connect(self.proxy_address_hello)
+        self.socket_online.connect(self.proxy_address_online)
         self.socket_s.connect(self.proxy_address_s)
         self.send_hello_request()
 
@@ -65,72 +76,88 @@ class Server:
 
     def start_listening(self):
         self.connect()
+
+        self.poller.register(self.socket_reach, zmq.POLLIN)
+        self.poller.register(self.socket_r, zmq.POLLIN)
+
         while True:
             if self.isAssigned == False:
                 self.send_hello_request()
 
-            response = self.socket_r.recv_multipart()
-            # check if its a get request
-            client_id = response[2]
-            list_id = response[3].decode()
+            sockets = dict(self.poller.poll())
 
-            if list_id != "ACK":
-                if response[1] == b"GET_LIST":
-                    print("\nS> SENDING LIST")
-                    filename = self.get_list_from_storage(list_id)
-                    if filename != None:
-                        shopping_list_to_send = ShoppingList()
-                        shopping_list_to_send.load_list_server_from_file(filename)
-                        shopping_list_to_send_coded = pickle.dumps(
-                            shopping_list_to_send
-                        )
-                        self.socket_s.send_multipart(
-                            [
-                                client_id,
-                                shopping_list_to_send_coded,
-                                list_id.encode(),
-                                self.uuid.encode(),
-                            ]
-                        )
+            if self.socket_reach in sockets and self.socket_reach.poll():
+                reach = self.socket_reach.recv_multipart()
+
+                if reach[1] == b"S_REACH":
+                    print("\nS> S_REACH RECEIVED")
+
+                    self.socket_online.send_multipart([self.uuid.encode(), b"S_ONLINE"])
+                    print("\nS> SENT S_ONLINE")
+
+            if self.socket_r in sockets and self.socket_r.poll(0):
+                response = self.socket_r.recv_multipart()
+                client_id = response[2]
+                list_id = response[3].decode()
+
+                if list_id != "ACK":
+                    # check if its a get request
+                    if response[1] == b"GET_LIST":
+                        print("\nS> SENDING LIST")
+                        filename = self.get_list_from_storage(list_id)
+                        if filename != None:
+                            shopping_list_to_send = ShoppingList()
+                            shopping_list_to_send.load_list_server_from_file(filename)
+                            shopping_list_to_send_coded = pickle.dumps(
+                                shopping_list_to_send
+                            )
+                            self.socket_s.send_multipart(
+                                [
+                                    client_id,
+                                    shopping_list_to_send_coded,
+                                    list_id.encode(),
+                                    self.uuid.encode(),
+                                ]
+                            )
+                        else:
+                            self.socket_s.send_multipart(
+                                [client_id, b"", b"NOT FOUND", self.uuid.encode()]
+                            )
                     else:
-                        self.socket_s.send_multipart(
-                            [client_id, b"", b"NOT FOUND", self.uuid.encode()]
-                        )
+                        file = self.get_list_from_storage(list_id)
+                        if file == None:
+                            list = pickle.loads(response[1])
+                            print(f"S> C: {list_id}")
+
+                            self.save_list_server_to_file(list_id, list)
+                            message = "SAVED IN SERVER"
+                            self.socket_s.send_multipart(
+                                [client_id, message.encode(), self.uuid.encode()]
+                            )
+                            print(f"S> SENT: {message}")
+                            self.shopping_lists[list_id] = list
+                        else:
+                            print(f"S> C: {list_id}")
+
+                            shopping_list_old = self.get_list(list_id)
+
+                            list = pickle.loads(response[1])
+
+                            new_list = list.merge(shopping_list_old)
+
+                            self.save_list_server_to_file(list_id, new_list)
+
+                            message = "MERGED IN SERVER"
+                            self.socket_s.send_multipart(
+                                [client_id, message.encode(), self.uuid.encode()]
+                            )
+                            print(f"S> SENT: {message}")
+                            self.shopping_lists[list_id] = new_list
+                    for key in self.shopping_lists:
+                        self.instantiate_lists(key)
+
                 else:
-                    file = self.get_list_from_storage(list_id)
-                    if file == None:
-                        list = pickle.loads(response[1])
-                        print(f"S> C: {list_id}")
-
-                        self.save_list_server_to_file(list_id, list)
-                        message = "SAVED IN SERVER"
-                        self.socket_s.send_multipart(
-                            [client_id, message.encode(), self.uuid.encode()]
-                        )
-                        print(f"S> SENT {message}")
-                        self.shopping_lists[list_id] = list
-                    else:
-                        print(f"S> C: {list_id}")
-
-                        shopping_list_old = self.get_list(list_id)
-
-                        list = pickle.loads(response[1])
-
-                        new_list = list.merge(shopping_list_old)
-
-                        self.save_list_server_to_file(list_id, new_list)
-
-                        message = "MERGED IN SERVER"
-                        self.socket_s.send_multipart(
-                            [client_id, message.encode(), self.uuid.encode()]
-                        )
-                        print(f"S> SENT {message}")
-                        self.shopping_lists[list_id] = new_list
-                for key in self.shopping_lists:
-                    self.instantiate_lists(key)
-
-            else:
-                self.socket_s.send_multipart([b"", b"", b""])
+                    self.socket_s.send_multipart([b"", b"", b""])
 
     def instantiate_lists(self, list_id):
         self.shopping_lists[list_id] = ShoppingList()
@@ -148,6 +175,8 @@ class Server:
         self.socket_r.close()
         self.socket_ack.close()
         self.socket_hello.close()
+        self.socket_reach.close()
+        self.socket_online.close()
         self.socket_s.close()
         self.context.term()
 
@@ -166,7 +195,6 @@ class Server:
 
         with open(filename, "w") as file:
             file.write(json_data)
-        print(f"\nList saved as {filename}")
 
     def get_list_from_storage(self, list_id):
         current_directory = os.path.dirname(__file__)
@@ -187,6 +215,8 @@ class Server:
 if __name__ == "__main__":
     server = Server(
         node_type="SERVER",
+        proxy_address_reach="tcp://localhost:5545",
+        proxy_address_online="tcp://localhost:5546",
         proxy_address_r="tcp://localhost:5565",
         proxy_address_s="tcp://localhost:5566",
         proxy_address_ack="tcp://localhost:5575",

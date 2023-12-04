@@ -36,6 +36,8 @@ class Client:
 
         # try to upload to server
         try:
+            merge_msg = self.socket_r.recv_multipart()
+            saved_msg = self.socket_r.recv_multipart()
             response = self.socket_r.recv_multipart()
             print(f"\nC> UPLOAD SUCCESSFUL: {response[1].decode()}")
         except zmq.error.Again as e:
@@ -50,12 +52,21 @@ class Client:
         try:
             response = self.socket_r.recv_multipart()
 
+            print("REC:", response)
+
             list_id = response[2].decode()
             if list_id == "NOT FOUND":
-                print("C> LIST NOT FOUND")
+                print("\nC> LIST NOT FOUND")
+            elif (response[1] == b"MERGED IN SERVER") or (
+                response[1] == b"SAVED IN SERVER"
+            ):
+                print("\nC> NO LIST RECEIVED")
+
             else:
                 list_from_server = pickle.loads(response[1])
-                list_from_server.save_list_client_to_file(list_id, self.uuid)
+                list_from_server.save_list_client_to_file(
+                    id_list=list_id, id_client=self.uuid
+                )
                 print("C> LIST SAVED LOCALLY")
 
         except zmq.error.Again as e:

@@ -95,7 +95,7 @@ class UI:
         shopping_list.add(item)
         shopping_list.print_list()
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-        self.save_list_in_server(l_id=list_id)
+        self.save_list_in_server(shopping_list, list_id)
         print("\n")
 
     def remove_item_from_shopping_list(self):
@@ -108,7 +108,8 @@ class UI:
         shopping_list.remove(item_id)
         shopping_list.print_list()
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-        self.save_list_in_server(l_id=list_id)
+        print("SL:",shopping_list.__dict__)
+        self.save_list_in_server(shopping_list, list_id)
         print("\n")
 
     def acquire_item_in_shopping_list(self):
@@ -120,23 +121,16 @@ class UI:
         shopping_list.acquire(item_id)
         shopping_list.print_list()
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-        self.save_list_in_server(l_id=list_id)
+        self.save_list_in_server(shopping_list, list_id)
         print("\n")
 
     def get_list_from_server(self):
         list_id = self.check_list_id()
         self.client.send_get(list_id)
 
-    def save_list_in_server(self, l_id=None):
-        if l_id == None:
-            list_id = self.check_list_id()
-        else:
-            list_id = l_id
-        filename = "list_" + list_id + ".json"
-        shopping_list = ShoppingList()
-        if shopping_list.load_list_client_from_file(self.client.uuid, filename):
+    def save_list_in_server(self, shopping_list, list_id):
             list_to_send = pickle.dumps(shopping_list)
-            self.client.send_data(list_to_send, str(list_id))
+            self.client.send_data(list_to_send, list_id)
 
     def invalid_choice(self):
         print("INVALID CHOICE")

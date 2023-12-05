@@ -142,9 +142,7 @@ class Server:
                             shopping_list_old = self.get_list(list_id)
 
                             list = pickle.loads(response[1])
-
                             new_list = list.merge(shopping_list_old)
-
                             self.save_list_server_to_file(list_id, new_list)
 
                             message = "MERGED IN SERVER"

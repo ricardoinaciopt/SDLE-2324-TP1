@@ -30,6 +30,7 @@ class UI:
         print("5. Acquire item")
         print("6. Get list from server")
         print("7. Save list in server")
+        print("8. Delete list")
         print("0. Exit")
 
     def get_user_choice(self):
@@ -46,6 +47,7 @@ class UI:
             "5": self.acquire_item_in_shopping_list,
             "6": self.get_list_from_server,
             "7": self.save_list_in_server,
+            "8": self.delete_list,
             "0": self.exiting,
         }
 
@@ -123,6 +125,19 @@ class UI:
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
         self.save_list_in_server(shopping_list, list_id)
         print("\n")
+        
+    def delete_list(self):
+       list_id = self.check_list_id()
+       filename = "list_" + list_id + ".json" 
+       shopping_list = ShoppingList()    
+       if (shopping_list.load_list_client_from_file(self.client.uuid, filename)):
+           current_directory = os.path.dirname(__file__)
+           filename = os.path.join(
+            current_directory, "storage", f"client_{self.client.uuid}", filename
+        )
+           os.remove(filename)
+           print("List deleted")
+
 
     def get_list_from_server(self):
         list_id = self.check_list_id()

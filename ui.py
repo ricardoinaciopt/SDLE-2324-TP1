@@ -4,24 +4,28 @@ from list_writer.LWW.lww import ShoppingList
 import shutil
 import pickle
 import re
+import time
 
 
 class UI:
     def __init__(self, client):
         self.client = client
         while True:
-            self.display_menu()
-            choice = self.get_user_choice()
-            self.process_choice(choice)
-            if int(choice) == 0:
-                break
-            input("\n[PRESS ENTER TO CONTINUE]\n")
-            if os.name == "nt":
-                os.system("cls")
-            else:
-                os.system("clear")
+            self.program_loop()
+
+    def program_loop(self):
+        self.display_menu()
+        choice = self.get_user_choice()
+        self.process_choice(choice)
+
+        input("\n[PRESS ENTER TO CONTINUE]\n")
 
     def display_menu(self):
+        if os.name == "nt":
+            os.system("cls")
+        else:
+            os.system("clear")
+
         print("Menu:")
         print("1. Create list")
         print("2. Print list")
@@ -34,8 +38,18 @@ class UI:
         print("0. Exit")
 
     def get_user_choice(self):
-        choice = input("Enter your choice: ")
-        return choice
+        try:
+            choice = input("ENTER SELECTION: ")
+            if 0 <= int(choice) <= 8 or choice.strip() == "":
+                return choice
+            else:
+                print(f"\n[INVALID SELECTION: {choice}]\n[PRESS ENTER KEY]")
+                input()
+                self.program_loop()
+        except:
+            print(f"\n[INVALID SELECTION: {choice}]")
+            time.sleep(1.5)
+            self.program_loop()
 
     # MENU OPTIONS
     def process_choice(self, choice):
@@ -110,7 +124,7 @@ class UI:
         shopping_list.remove(item_id)
         shopping_list.print_list()
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-        print("SL:",shopping_list.__dict__)
+        print("SL:", shopping_list.__dict__)
         self.save_list_in_server(shopping_list, list_id)
         print("\n")
 
@@ -125,33 +139,40 @@ class UI:
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
         self.save_list_in_server(shopping_list, list_id)
         print("\n")
-        
-    def delete_list(self):
-       list_id = self.check_list_id()
-       filename = "list_" + list_id + ".json" 
-       shopping_list = ShoppingList()    
-       if (shopping_list.load_list_client_from_file(self.client.uuid, filename)):
-           current_directory = os.path.dirname(__file__)
-           filename = os.path.join(
-            current_directory, "storage", f"client_{self.client.uuid}", filename
-        )
-           os.remove(filename)
-           print("List deleted")
 
+    def delete_list(self):
+        list_id = self.check_list_id()
+        filename = "list_" + list_id + ".json"
+        shopping_list = ShoppingList()
+        if shopping_list.load_list_client_from_file(self.client.uuid, filename):
+            current_directory = os.path.dirname(__file__)
+            filename = os.path.join(
+                current_directory, "storage", f"client_{self.client.uuid}", filename
+            )
+            os.remove(filename)
+            print("List deleted")
 
     def get_list_from_server(self):
         list_id = self.check_list_id()
         self.client.send_get(list_id)
 
-    def save_list_in_server(self, shopping_list, list_id):
-            list_to_send = pickle.dumps(shopping_list)
-            self.client.send_data(list_to_send, list_id)
+    def save_list_in_server(self, shopping_list=None, list_id=None):
+        if list_id == None and shopping_list == None:
+            list_id = self.check_list_id()
+            filename = "list_" + list_id + ".json"
+
+            shopping_list = ShoppingList()
+            shopping_list.load_list_client_from_file(self.client.uuid, filename)
+        list_to_send = pickle.dumps(shopping_list)
+        self.client.send_data(list_to_send, list_id)
 
     def invalid_choice(self):
         print("INVALID CHOICE")
 
     def exiting(self):
         print("EXITING...")
+        exit()
+        return
 
     def input_name(self):
         while True:

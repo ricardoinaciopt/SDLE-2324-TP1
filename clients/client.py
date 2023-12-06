@@ -50,8 +50,6 @@ class Client:
                 break
             except zmq.error.Again as e:
                 self.colorize_text(f"C> COULDN'T UPLOAD: {e}\n")
-
-                # TESTE
                 self.socket_s.send_multipart(
                     [self.uuid.encode(), list, list_id.encode()]
                 )

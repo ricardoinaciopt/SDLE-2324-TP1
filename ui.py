@@ -26,16 +26,16 @@ class UI:
         else:
             os.system("clear")
 
-        print("Menu:")
-        print("1. Create list")
-        print("2. Print list")
-        print("3. Add item to list")
-        print("4. Remove item from list")
-        print("5. Acquire item")
-        print("6. Get list from server")
-        print("7. Save list in server")
-        print("8. Delete list")
-        print("0. Exit")
+        self.colorize_text("MENU:\n")
+        self.colorize_text("1. Create list")
+        self.colorize_text("2. Print list")
+        self.colorize_text("3. Add item to list")
+        self.colorize_text("4. Remove item from list")
+        self.colorize_text("5. Acquire item")
+        self.colorize_text("6. Get list from server")
+        self.colorize_text("7. Save list in server")
+        self.colorize_text("8. Delete list")
+        self.colorize_text("0. Exit")
 
     def get_user_choice(self):
         try:
@@ -171,7 +171,7 @@ class UI:
 
     def exiting(self):
         print("EXITING...")
-        exit()
+        exit(0)
         return
 
     def input_name(self):
@@ -213,6 +213,25 @@ class UI:
                 print(f"Invalid input: {e}")
 
         return str(input_id)
+
+    def colorize_text(self, text):
+        prefix = text[:2]
+
+        switch = {
+            "ME": "\033[93m" + text + "\033[0m",
+            "0.": "\033[93m" + prefix + "\033[0m" + text[2:],
+            "1.": "\033[93m" + prefix + "\033[0m" + text[2:],
+            "2.": "\033[93m" + prefix + "\033[0m" + text[2:],
+            "3.": "\033[93m" + prefix + "\033[0m" + text[2:],
+            "4.": "\033[93m" + prefix + "\033[0m" + text[2:],
+            "5.": "\033[93m" + prefix + "\033[0m" + text[2:],
+            "6.": "\033[93m" + prefix + "\033[0m" + text[2:],
+            "7.": "\033[93m" + prefix + "\033[0m" + text[2:],
+            "8.": "\033[93m" + prefix + "\033[0m" + text[2:],
+        }
+
+        colored_text = switch.get(prefix, text)
+        print(colored_text)
 
 
 if __name__ == "__main__":

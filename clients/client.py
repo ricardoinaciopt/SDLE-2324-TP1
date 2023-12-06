@@ -21,7 +21,7 @@ class Client:
         self.proxy_address_s = proxy_address_s
         self.proxy_address_r = proxy_address_r
 
-        print("\n--------\nC> STARTED: ", self.uuid)
+        self.colorize_text(f"C> STARTED: {self.uuid}\n--------\n")
 
     def connect(self):
         self.socket_r.connect(self.proxy_address_r)
@@ -40,17 +40,32 @@ class Client:
                 self.socket_s.send_multipart(
                     [self.uuid.encode(), list, list_id.encode()]
                 )
-                print("\nC> UPLOADING LIST: ", list_id)
-                print(f"\nC> [TRIES: {tries}]")
+                self.colorize_text(f"C> UPLOADING LIST: {list_id}\n")
+                self.colorize_text(f"C> [TRIES: {tries}]\n")
 
                 merge_msg = self.socket_r.recv_multipart()
                 saved_msg = self.socket_r.recv_multipart()
                 response = self.socket_r.recv_multipart()
-                print(f"\nC> UPLOAD SUCCESSFUL: {response[1].decode()}")
+                self.colorize_text(f"C> UPLOAD SUCCESSFUL: {response[1].decode()}\n")
                 break
             except zmq.error.Again as e:
-                print(f"\nC> COULDN'T UPLOAD: {e}")
-        print("C> LIST SAVED LOCALLY")
+                self.colorize_text(f"C> COULDN'T UPLOAD: {e}\n")
+
+                # TESTE
+                self.socket_s.send_multipart(
+                    [self.uuid.encode(), list, list_id.encode()]
+                )
+                self.colorize_text(f"C> [RETRYING...]\n")
+
+                self.colorize_text(f"C> UPLOADING LIST: {list_id}\n")
+
+                merge_msg = self.socket_r.recv_multipart()
+                saved_msg = self.socket_r.recv_multipart()
+                response = self.socket_r.recv_multipart()
+                self.colorize_text(f"C> UPLOAD SUCCESSFUL: {response[1].decode()}\n")
+                break
+
+        self.colorize_text("C> LIST SAVED LOCALLY\n")
 
     def send_get(self, list_id):
         tries = 0
@@ -61,18 +76,18 @@ class Client:
                     [self.uuid.encode(), b"GET_LIST", list_id.encode()]
                 )
 
-                print("\nC> WAITING FOR LIST...")
-                print(f"\nC> [TRIES: {tries}]")
+                self.colorize_text("C> WAITING FOR LIST...\n")
+                self.colorize_text(f"C> [TRIES: {tries}]\n")
 
                 response = self.socket_r.recv_multipart()
 
                 list_id = response[2].decode()
                 if list_id == "NOT FOUND":
-                    print("\nC> LIST NOT FOUND")
+                    self.colorize_text("C> LIST NOT FOUND\n")
                 elif (response[1] == b"MERGED IN SERVER") or (
                     response[1] == b"SAVED IN SERVER"
                 ):
-                    print("\nC> NO LIST RECEIVED")
+                    self.colorize_text("C> NO LIST RECEIVED\n")
 
                 else:
                     list_from_server = pickle.loads(response[1])
@@ -83,12 +98,25 @@ class Client:
                     break
 
             except zmq.error.Again as e:
-                print(f"\nC> COULDN'T GET: {e}")
+                self.colorize_text(f"C> COULDN'T GET: {e}\n")
 
     def close(self):
         self.socket_r.close()
         self.socket_s.close()
         self.context.term()
+
+    def colorize_text(self, text):
+        prefix = text[:3]
+
+        switch = {
+            "P> ": "\033[95m" + text + "\033[0m",  # Purple color
+            "C> ": "\033[94m" + text + "\033[0m",  # Blue color
+            "S> ": "\033[92m" + text + "\033[0m",  # Green color
+            "HR>": "\033[91m" + text + "\033[0m",  # Red color
+        }
+
+        colored_text = switch.get(prefix, text)
+        print(colored_text)
 
 
 # Example usage

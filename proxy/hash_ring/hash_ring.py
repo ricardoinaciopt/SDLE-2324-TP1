@@ -20,7 +20,7 @@ class HashRing:
             for i in range(self.virtual_nodes):
                 hash_key = self._hash(f"{node}-{i}")
                 self.ring[hash_key] = node
-                print(f"HR> ADDED {node} [VN {i+1}] ({hash_key})")
+                self.colorize_text(f"HR> ADDED {node} [VN {i+1}] ({hash_key})\n")
                 self.sorted_keys.append(hash_key)
 
         self.sorted_keys.sort()
@@ -29,7 +29,7 @@ class HashRing:
         for i in range(self.virtual_nodes):
             hash_key = self._hash(f"{node}-{i+1}")
             self.ring[hash_key] = node
-            print(f"HR> ADDED {node} [VN {i+1}] ({hash_key})")
+            self.colorize_text(f"HR> ADDED {node} [VN {i+1}] ({hash_key})\n")
             self.sorted_keys.append(hash_key)
 
     def remove_node(self, node):
@@ -38,7 +38,7 @@ class HashRing:
             hash_key = self._hash(f"{node}-{i}")
             if hash_key in self.ring:
                 keys_to_remove.append(hash_key)
-                print(f"HR> REMOVED {node} [VN {i+1}] ({hash_key})")
+                self.colorize_text(f"HR> REMOVED {node} [VN {i+1}] ({hash_key})\n")
 
         next_node_index = (self.sorted_keys.index(keys_to_remove[-1]) + 1) % len(
             self.sorted_keys
@@ -112,7 +112,7 @@ class HashRing:
 
     def print_key_ranges(self, index=False):
         responsible_nodes = self.get_responsible_nodes()
-        print("HR> ACTIVE NODES: ", len(responsible_nodes))
+        self.colorize_text(f"HR> ACTIVE NODES: {len(responsible_nodes)}\n")
         for node, key_ranges in responsible_nodes.items():
             formatted_ranges = []
             for start_key, end_key in key_ranges:
@@ -120,4 +120,17 @@ class HashRing:
                     start_key = self.sorted_keys.index(start_key)
                     end_key = self.sorted_keys.index(end_key)
                 formatted_ranges.append((start_key, end_key))
-            print(f"{node}, Key Ranges: {formatted_ranges}")
+            self.colorize_text(f"HR> {node} KEY RANGES: {formatted_ranges}\n")
+
+    def colorize_text(self, text):
+        prefix = text[:3]
+
+        switch = {
+            "P> ": "\033[95m" + text + "\033[0m",  # Purple color
+            "C> ": "\033[94m" + text + "\033[0m",  # Blue color
+            "S> ": "\033[92m" + text + "\033[0m",  # Green color
+            "HR>": "\033[91m" + text + "\033[0m",  # Red color
+        }
+
+        colored_text = switch.get(prefix, text)
+        print(colored_text)

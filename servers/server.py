@@ -41,7 +41,7 @@ class Server:
 
         self.poller = zmq.Poller()
 
-        print("\n--------\nS> STARTED:", self.uuid)
+        self.colorize_text(f"S> STARTED: {self.uuid}\n--------\n")
 
     def connect(self):
         self.socket_r.connect(self.proxy_address_r)
@@ -59,7 +59,7 @@ class Server:
         self.socket_hello.send_multipart(
             [b"S_HELLO", self.uuid.encode(), self.node_type.encode()]
         )
-        print("S> S_HELLO")
+        self.colorize_text("S> S_HELLO\n")
 
         response = self.socket_ack.recv_multipart()
 
@@ -67,7 +67,7 @@ class Server:
         ack = response[1].decode()
 
         if ack == "ACK":
-            print(f"S> RECEIVED {ack} ({s_id})")
+            self.colorize_text(f"S> RECEIVED {ack} ({s_id})\n")
         else:
             return
 
@@ -90,10 +90,10 @@ class Server:
                 reach = self.socket_reach.recv_multipart()
 
                 if reach[1] == b"S_REACH":
-                    print("\nS> S_REACH RECEIVED")
+                    self.colorize_text("S> S_REACH RECEIVED\n")
 
                     self.socket_online.send_multipart([self.uuid.encode(), b"S_ONLINE"])
-                    print("\nS> SENT S_ONLINE")
+                    self.colorize_text("S> SENT S_ONLINE\n")
 
             if self.socket_r in sockets and self.socket_r.poll(0):
                 response = self.socket_r.recv_multipart()
@@ -103,7 +103,7 @@ class Server:
                 if list_id != "ACK":
                     # check if its a get request
                     if response[1] == b"GET_LIST":
-                        print("\nS> SENDING LIST")
+                        self.colorize_text("S> SENDING LIST\n")
                         filename = self.get_list_from_storage(list_id)
                         if filename != None:
                             shopping_list_to_send = ShoppingList()
@@ -127,17 +127,17 @@ class Server:
                         file = self.get_list_from_storage(list_id)
                         if file == None:
                             list = pickle.loads(response[1])
-                            print(f"S> C: {list_id}")
+                            self.colorize_text(f"S> C: {list_id}\n")
 
                             self.save_list_server_to_file(list_id, list)
                             message = "SAVED IN SERVER"
                             self.socket_s.send_multipart(
                                 [client_id, message.encode(), self.uuid.encode()]
                             )
-                            print(f"S> SENT: {message}")
+                            self.colorize_text(f"S> SENT: {message}\n")
                             self.shopping_lists[list_id] = list
                         else:
-                            print(f"S> C: {list_id}")
+                            self.colorize_text(f"S> C: {list_id}\n")
 
                             shopping_list_old = self.get_list(list_id)
 
@@ -149,7 +149,7 @@ class Server:
                             self.socket_s.send_multipart(
                                 [client_id, message.encode(), self.uuid.encode()]
                             )
-                            print(f"S> SENT: {message}")
+                            self.colorize_text(f"S> SENT: {message}\n")
                             self.shopping_lists[list_id] = new_list
                     for key in self.shopping_lists:
                         self.instantiate_lists(key)
@@ -208,6 +208,19 @@ class Server:
                     filename = os.path.join(root, file)
                     return filename
         return None
+
+    def colorize_text(self, text):
+        prefix = text[:3]
+
+        switch = {
+            "P> ": "\033[95m" + text + "\033[0m",  # Purple color
+            "C> ": "\033[94m" + text + "\033[0m",  # Blue color
+            "S> ": "\033[92m" + text + "\033[0m",  # Green color
+            "HR>": "\033[91m" + text + "\033[0m",  # Red color
+        }
+
+        colored_text = switch.get(prefix, text)
+        print(colored_text)
 
 
 if __name__ == "__main__":

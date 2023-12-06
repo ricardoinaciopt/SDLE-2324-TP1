@@ -202,7 +202,7 @@ class ShoppingList:
                 json_data = json.load(file)
                 for item in json_data["list"]:
                     self.add(item)
-                print(f"List loaded from {filename}")
+                print(f"List loaded from {filename}\n")
             return True
         else:
             print("File not found")
@@ -214,7 +214,7 @@ class ShoppingList:
                 json_data = json.load(file)
                 for item in json_data["list"]:
                     self.add(item)
-                print(f"List loaded from {filepath}")
+                print(f"List loaded from {filepath}\n")
         except:
             print("File not found")
             return None

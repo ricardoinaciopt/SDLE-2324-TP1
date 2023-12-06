@@ -59,7 +59,7 @@ class Proxy:
             self.servers.append(server_id)
             self.serverQueue.append(server_id)
 
-            print(f"P> SERVER QUEUE LENGHT: {len(self.serverQueue)}")
+            self.colorize_text(f"P> SERVER QUEUE LENGHT: {len(self.serverQueue)}\n")
 
             if len(self.serverQueue) == 5:
                 self.hash_ring.generate_ring(self.serverQueue)
@@ -72,7 +72,7 @@ class Proxy:
             self.hash_ring.remove_node(server_id)
 
     def select_responsible_node(self, key):
-        print(f"P> NODE ({self.hash_ring.lookup_node(key)}) SELECTED")
+        self.colorize_text(f"P> NODE ({self.hash_ring.lookup_node(key)}) SELECTED\n")
         return self.hash_ring.lookup_node(key)
 
     def run(self):
@@ -91,16 +91,16 @@ class Proxy:
                         node_type = message[3].decode()
 
                         if node_type == "SERVER" and server_id not in self.servers:
-                            print(f"P> Added Server: {server_id}")
+                            self.colorize_text(f"P> Added Server: {server_id}\n")
                             self.add_server(server_id)
                             try:
                                 self.backend_ack.send_multipart(
                                     [server_id.encode(), b"ACK"]
                                 )
 
-                                print("P> SENT ACK")
+                                self.colorize_text("P> SENT ACK\n")
                             except zmq.error.Again as e:
-                                print(f"\nC> COULDN'T REACH SERVER: {e}")
+                                self.colorize_text(f"C> COULDN'T REACH SERVER: {e}\n")
                                 self.remove_server(server_id)
 
                 if self.backend_r in sockets and self.backend_r.poll(0):
@@ -115,19 +115,18 @@ class Proxy:
                     message = self.frontend_r.recv_multipart()
                     client_id = message[1].decode()
                     list_id = message[3].decode()
-                    print("P> C:", list_id)
+                    self.colorize_text(f"P> C: {list_id}\n")
 
                     tries = 0
                     while tries != 3:
                         tries += 1
-                        print(f"\nP> [TRIES: {tries}]")
+                        print(f"P> [TRIES: {tries}]\n")
                         destination_node = self.hash_ring.lookup_node(list_id)
                         if destination_node:
                             # REACH DESTINATION
                             try:
-                                print(
-                                    "\nP> SENDING S_REACH: ",
-                                    destination_node,
+                                self.colorize_text(
+                                    f"P> SENDING S_REACH: {destination_node}\n"
                                 )
                                 self.backend_reach.send_multipart(
                                     [
@@ -139,10 +138,10 @@ class Proxy:
                                 s_online = self.backend_online.recv_multipart()
 
                                 if s_online[2] == b"S_ONLINE":
-                                    print("\nP> S_ONLINE RECEIVED")
+                                    self.colorize_text("P> S_ONLINE RECEIVED\n")
 
                             except zmq.error.ZMQError as e:
-                                print(f"\nP> COULDN'T REACH SERVER: {e}")
+                                self.colorize_text(f"P> COULDN'T REACH SERVER: {e}\n")
                                 self.remove_server(server_uuid)
 
                             # SEND TO DESTINATION
@@ -157,9 +156,11 @@ class Proxy:
                                     ]
                                 )
 
-                                print("\nP> Sending to primary: ", server_uuid)
+                                self.colorize_text(
+                                    f"P> Sending to primary: {server_uuid}\n"
+                                )
                             except zmq.error.ZMQError as e:
-                                print(f"\nC> COULDN'T REACH SERVER: {e}")
+                                self.colorize_text(f"C> COULDN'T REACH SERVER: {e}\n")
                                 self.remove_server(server_uuid)
                             # IF IT'S NOT A GET
                             if message[2] != b"GET_LIST":
@@ -168,9 +169,8 @@ class Proxy:
                                 )
 
                                 if replica_nodes:
-                                    print(
-                                        "\nP> Sending to replicas:",
-                                        replica_nodes,
+                                    self.colorize_text(
+                                        f"P> Sending to replicas: {replica_nodes}\n"
                                     )
 
                                     for replica_node in replica_nodes:
@@ -185,7 +185,7 @@ class Proxy:
                             break
 
                         else:
-                            print("NO SERVERS AVAILABLE")
+                            self.colorize_text("NO SERVERS AVAILABLE")
 
         except zmq.error.ContextTerminated:
             pass
@@ -199,6 +199,19 @@ class Proxy:
             self.backend_ack.close()
             self.backend_hello.close()
             self.context.term()
+
+    def colorize_text(self, text):
+        prefix = text[:3]
+
+        switch = {
+            "P> ": "\033[95m" + text + "\033[0m",  # Purple color
+            "C> ": "\033[94m" + text + "\033[0m",  # Blue color
+            "S> ": "\033[92m" + text + "\033[0m",  # Green color
+            "HR>": "\033[91m" + text + "\033[0m",  # Red color
+        }
+
+        colored_text = switch.get(prefix, text)
+        print(colored_text)
 
 
 if __name__ == "__main__":

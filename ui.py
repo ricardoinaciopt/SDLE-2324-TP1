@@ -79,7 +79,6 @@ class UI:
         item["quantity"] = str(item_quantity)
         shopping_list.add(item)
         shopping_list.print_list()
-        print(shopping_list.uuid)
         shopping_list.save_list_client_to_file(
             str(shopping_list.uuid), self.client.uuid, True
         )
@@ -124,7 +123,6 @@ class UI:
         shopping_list.remove(item_id)
         shopping_list.print_list()
         shopping_list.save_list_client_to_file(list_id, self.client.uuid, True)
-        print("SL:", shopping_list.__dict__)
         self.save_list_in_server(shopping_list, list_id)
         print("\n")
 

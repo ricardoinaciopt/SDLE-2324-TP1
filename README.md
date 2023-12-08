@@ -6,9 +6,9 @@ Shopping Lists on The Cloud is a large-scale distributed system designed for man
 
 ## Authors
 
-- Ricardo Inácio (up2023027421@up.pt)
-- Diogo Lemos (up2020034842@up.pt)
-- Tomás Maciel (up2020068453@up.pt)
+- Ricardo Inácio (up202302742@up.pt)
+- Diogo Lemos (up202003484@up.pt)
+- Tomás Maciel (up202006845@up.pt)
 
 ## Description
 
@@ -21,7 +21,7 @@ Distributed solutions over the internet can be complex, requiring mechanisms for
 - **Last-Writer-Wins CRDT:** Versioning is handled using a Last-Writer-Wins Convergent Replicated Data Type (CRDT) supporting add, remove, compare, lookup, and merging functions.
 - **Consistent Hash Ring:** Distribution is managed by a consistent hash ring, ensuring uniform mapping of nodes and efficient data storage and replication.
 
-For more informtion and detail, refer to the project's report: [Final Report PDF](./final-report.pdf)
+For more information and detail, refer to the project's report: [Final Report PDF](./final-report.pdf)
 
 
 ## Keywords
@@ -58,7 +58,9 @@ python client.py
 ```
 
 The client script is designed for academic purposes and is intended to work on a local single machine. Multiple local clients can be run simultaneously, as intended.
-Note for Online Deployment
+
+
+## Note for Online Deployment
 
 If you intend to deploy the system online, follow these steps:
 
